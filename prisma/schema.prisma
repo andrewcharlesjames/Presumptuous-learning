@@ -60,6 +60,7 @@ model School {
   coachTitle String   @default("Coach")
   yearStart  DateTime @db.Date
   yearEnd    DateTime @db.Date
+  isTest       Boolean  @default(false) // a real, filled-in school for trying the platform (deletable)
   isDemo     Boolean  @default(false)
   aiTutor    Boolean  @default(false) // school has opted in to AI explanations for students
   launchDay  DateTime? @db.Date // Launch Day for student projects (May)

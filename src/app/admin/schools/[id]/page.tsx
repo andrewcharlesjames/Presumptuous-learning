@@ -28,7 +28,7 @@ export default async function SchoolLicencePage({ params }: { params: Promise<{ 
     <Shell user={user}>
       <div className="spread">
         <div><span className="eyebrow"><Link href="/admin">Schools</Link> · code {school.code}</span><h1>{school.name}</h1></div>
-        <span className="row"><span className="chip">{st.label}</span><Info label="This page">Only you (platform admin) see this page. It controls what this school has bought: how many students it can add, until when, and what you invoice it. School admins see the result under Billing.</Info></span>
+        <span className="row"><Link className="btn small" href={`/admin/people?school=${school.id}`}>People at this school</Link><span className="chip">{st.label}</span><Info label="This page">Only you (platform admin) see this page. It controls what this school has bought: how many students it can add, until when, and what you invoice it. School admins see the result under Billing.</Info></span>
       </div>
       {st.warn && <p className="flash error">{st.warn}</p>}
       <div className="grid3">

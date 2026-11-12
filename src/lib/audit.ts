@@ -19,6 +19,7 @@ export const AUDIT_LABEL: Record<string, string> = {
   "staff.add": "Added staff account",
   "student.add": "Added student",
   "student.import": "Imported students",
+  "password.link": "Sent a password reset link",
   "password.self_reset": "Reset own password by email",
   "account.link": "Connected a Google or Microsoft account",
   "account.unlink": "Disconnected a Google or Microsoft account",

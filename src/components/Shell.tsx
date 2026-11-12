@@ -13,7 +13,7 @@ const ROLE_LABEL = { PLATFORM_ADMIN: "Platform admin", SCHOOL_ADMIN: "School adm
 
 export function navFor(user: CurrentUser): { href: string; label: string }[] {
   switch (user.role) {
-    case "PLATFORM_ADMIN": return [{ href: "/admin", label: "Schools" }, { href: "/admin/questions", label: "Question bank" }, { href: "/admin/lessons", label: "Lessons" }, { href: "/admin/leads", label: "Pilot requests" }, { href: "/admin/email", label: "Email" }];
+    case "PLATFORM_ADMIN": return [{ href: "/admin", label: "Schools" }, { href: "/admin/people", label: "People" }, { href: "/admin/questions", label: "Question bank" }, { href: "/admin/lessons", label: "Lessons" }, { href: "/admin/leads", label: "Pilot requests" }, { href: "/admin/email", label: "Email" }];
     case "SCHOOL_ADMIN": return [
       { href: "/school", label: "Overview" }, { href: "/school/people", label: "People" }, { href: "/school/classes", label: "Classes" },
       { href: "/school/schedule", label: "School day" }, { href: "/school/calendar", label: "Calendar" }, { href: "/showcase", label: "Showcase" }, { href: "/school/privacy", label: "Privacy" }, { href: "/school/billing", label: "Billing" }, { href: "/school/settings", label: "Settings" },

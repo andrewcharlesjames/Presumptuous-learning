@@ -74,6 +74,11 @@ src/lib/templates.ts      default school day and Ontario calendar template
 src/app/                  pages by role: admin/, school/, coach/, parent/, student/, students/[id]
 ```
 
+## Running the platform
+
+- **People** (platform admin): everyone on the platform, searchable by name, email or username and filterable by school, role and status. Email an adult a one-time reset link (the link is shown to you if email isn't set up), set a temporary password (students), or deactivate/reactivate. School admins can also email reset links from their own People page.
+- **Test school** (platform admin → Schools → Create a test school): a real, filled-in school whose adult accounts use + versions of your email (you+principal.test@gmail.com …), so resets, weekly emails and invoices reach your inbox. Delete it from the Schools list when done. A **demo school** is the same data with made-up addresses, for sales demos.
+
 ## The Presumptuous Project (Life Skills · Business)
 
 - The business project is now the **Presumptuous Project**, alongside the Purpose Project.

@@ -744,6 +744,57 @@ await shot(pp, "15-phone-dark-student");
   await shot(R.page, "58-schedule-days");
 }
 
+/* 8e. Test school, platform People page, reset links */
+{
+  await A.page.goto(`${BASE}/admin`);
+  await A.page.fill("#test-name", "Maple Test Academy");
+  await A.page.click("button:has-text('Create test school')");
+  const t = await secrets(A.page, "real test school");
+  const [tpEmail, tpPw] = (t["Principal (school admin)"] ?? "").split(" / ");
+  const base = process.env.ADMIN_EMAIL.toLowerCase().split("@");
+  ok(tpEmail?.startsWith(`${base[0].split("+")[0]}+principal.`) && tpEmail.endsWith(`@${base[1]}`), `test school accounts use + addresses of your email (${tpEmail})`);
+  ok(await A.page.locator("tr:has-text('Maple Test Academy') .chip:has-text('Test')").count() >= 1, "test school is labelled Test");
+  const TP = await session("testprincipal");
+  await adultLogin(TP.page, tpEmail, tpPw);
+  ok(TP.page.url().endsWith("/school"), "test school principal signs in");
+
+  // platform People page: search, reset link (shown when email isn't set up), temporary password, deactivate
+  await A.page.goto(`${BASE}/admin/people`);
+  ok(await A.page.locator("h1:has-text('People')").count() === 1 && await A.page.locator(".stat").count() === 5, "platform admin sees everyone with totals");
+  await A.page.fill("#pq", tpEmail); await A.page.click("button:has-text('Search')");
+  await A.page.waitForURL(/q=/);
+  ok(await A.page.locator("tbody tr").count() === 1, "search finds one person by email");
+  await A.page.click("button:has-text('Email reset link')");
+  const link = (await secrets(A.page, "reset link"))["Reset link"] ?? (await secrets(A.page, "Emailed a reset link"))["Reset link"];
+  ok(!!link && link.includes("/reset/"), "admin gets a reset link to pass on while email isn't set up");
+  const RL = await session("resetlink");
+  await RL.page.goto(link);
+  ok(await RL.page.locator("h1:has-text('Choose a new password')").count() === 1, "the reset link opens");
+  await A.page.goto(`${BASE}/admin/people?q=amira&role=STUDENT`);
+  await A.page.locator("tbody tr").first().locator("button:has-text('Temporary password')").click();
+  const tmp = await secrets(A.page, "New password for");
+  ok(!!tmp["Password"] && !!tmp["Username"], "admin sets a student's temporary password");
+  await A.page.goto(`${BASE}/admin/people?q=${encodeURIComponent(tpEmail)}`);
+  await A.page.click("button:has-text('Deactivate')");
+  ok((await flashText(A.page, "deactivated")).includes("deactivated"), "admin deactivates an account");
+  await TP.page.goto(`${BASE}/school`);
+  ok(TP.page.url().endsWith("/login"), "a deactivated person is signed out");
+  await A.page.click("button:has-text('Reactivate')");
+  ok((await flashText(A.page, "now active")).includes("active"), "admin reactivates it");
+  await shot(A.page, "59-admin-people");
+
+  // school admin can email a reset link to a parent or coach
+  await R.page.goto(`${BASE}/school/people`);
+  await R.page.locator("button:has-text('Email reset link')").first().click();
+  ok((await flashText(R.page, "reset link")).toLowerCase().includes("link"), "school admin sends a reset link");
+
+  // delete the test school
+  await A.page.goto(`${BASE}/admin`);
+  A.page.once("dialog", d => d.accept());
+  await A.page.locator("tr:has-text('Maple Test Academy')").first().locator("button:has-text('Delete test school')").click();
+  ok((await flashText(A.page, "Deleted")).includes("Maple Test Academy"), "admin deletes the test school");
+}
+
 /* 9. accessibility: axe-core (WCAG 2.1 A and AA) on the main screens for each role */
 {
   const axePath = new URL("../node_modules/axe-core/axe.min.js", import.meta.url).pathname;
@@ -752,7 +803,7 @@ await shot(pp, "15-phone-dark-student");
     [S, "/student"], [S, "/student/studio"], [S, "/student/projects"], [S, studentLinkSelf ?? "/student"],
     [C, "/coach"], [P, "/school"], [P, "/school/people"], [P, "/school/privacy"], [P, "/school/settings"], [F, "/parent"], [F, "/showcase"],
     [A, "/admin/leads"], [R, "/school/billing"], [A, "/admin"],
-    [A, "/admin/email"], [F, "/account"], [anon, "/forgot"], [C, `/coach/classes/${classUrl.split("/").pop()}/reports`], [F, "/parent"],
+    [A, "/admin/email"], [A, "/admin/people"], [F, "/account"], [anon, "/forgot"], [C, `/coach/classes/${classUrl.split("/").pop()}/reports`], [F, "/parent"],
   ];
   const found = new Map();
   for (const [sess, path] of pages) {

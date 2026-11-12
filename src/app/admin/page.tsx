@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
 import { fmtDate } from "@/lib/dates";
-import { createDemoAction, createSchoolAction, deleteDemoAction } from "./actions";
+import { createTestSchoolAction, createDemoAction, createSchoolAction, deleteDemoAction } from "./actions";
 
 export const metadata = { title: "Schools" };
 
@@ -26,16 +26,24 @@ export default async function AdminPage() {
           <thead><tr><th>School</th><th>Code</th><th>Students<Info label="Students">Active students / seats on the licence.</Info></th><th>Classes</th><th>Licence<Info label="Licence">Pilot or Active, and when it ends. Click a school&apos;s name to change its seats, dates and price, and to create invoices.</Info></th><th></th></tr></thead>
           <tbody>{schools.map(s => (
             <tr key={s.id}>
-              <td><Link href={`/admin/schools/${s.id}`}><b>{s.name}</b></Link>{s.isDemo && <span className="chip" style={{ marginLeft: 8 }}>Demo</span>}</td>
+              <td><Link href={`/admin/schools/${s.id}`}><b>{s.name}</b></Link>{s.isTest && <span className="chip at" style={{ marginLeft: 8 }}>Test</span>}{s.isDemo && <span className="chip" style={{ marginLeft: 8 }}>Demo</span>}</td>
               <td className="num">{s.code}</td>
               <td className="num">{studentCount.get(s.id) ?? 0} / {s.seats}</td>
               <td className="num">{s._count.classes}</td>
               <td className="small">{s.plan === "ACTIVE" ? "Active" : "Pilot"}<span className="muted">{s.licenceEnd ? ` · ends ${fmtDate(s.licenceEnd, { month: "short", day: "numeric", year: "numeric" })}` : ""}</span></td>
-              <td>{s.isDemo && <form action={deleteDemoAction}><input type="hidden" name="id" value={s.id} /><button className="btn small danger">Delete demo</button></form>}</td>
+              <td>{(s.isDemo || s.isTest) && <form action={deleteDemoAction}><input type="hidden" name="id" value={s.id} /><button className="btn small danger">{s.isTest ? "Delete test school" : "Delete demo"}</button></form>}</td>
             </tr>
           ))}</tbody>
         </table></div>
       ) : <div className="empty"><b>No schools yet</b><span>Create your first school below, or a demo school to show prospects.</span></div>}
+      <form action={createTestSchoolAction} className="card">
+        <h2>Create a test school<Info label="Test school">{"A real school filled with the same sample students, classes, history, projects and report data as the demo, for trying everything yourself. Unlike the demo, every adult account (principal, two coaches, four parents) uses a + version of your email, such as you+coach.test4k@gmail.com. Gmail and most providers deliver those to your normal inbox, so password resets, the Friday parent email and invoices really arrive. Sign-in details are shown once. Delete it from the list when you're done."}</Info></h2>
+        <div className="form-grid">
+          <label className="field" htmlFor="test-email">Your email<input id="test-email" name="email" type="email" defaultValue={user.email ?? ""} required /></label>
+          <label className="field" htmlFor="test-name">School name<input id="test-name" name="name" type="text" placeholder="Riverside Test Academy" maxLength={120} /></label>
+        </div>
+        <div><button className="btn">Create test school</button></div>
+      </form>
       <form action={createSchoolAction} className="card">
         <h2>Add a school<Info label="Adding a school">{"Creates the school with a 90-day pilot (50 seats), the default school day, this year's Ontario calendar and an admin account. A demo school is a filled-in sample for sales calls and can be deleted."}</Info></h2>
         <p className="muted small">Creates the school with the default school day and this year&apos;s Ontario calendar, plus an account for its school admin. You&apos;ll get a temporary password to send them.</p>

@@ -65,18 +65,32 @@ const PROJECTS: Record<ProjectTypeName, { title: string; oneLiner: string; probl
 };
 const ART_FEEDBACK = ["The last line lands perfectly. Read it aloud at assembly?", "Strong images. Try cutting one word from each line and see what happens.", "I can feel the cold in this. Great sound in 'grey on grey'."];
 
-/** Creates a fully populated demo school for sales demos. Returns sign-in details. */
-export async function createDemoSchool() {
-  const code = await uniqueSchoolCode("DEMO");
+/** you@gmail.com + "coach.ab12" → you+coach.ab12@gmail.com (Gmail, Outlook and most providers deliver these to you). */
+export function plusAddress(email: string, tag: string): string {
+  const [local, domain] = email.trim().toLowerCase().split("@");
+  return `${local.split("+")[0]}+${tag}@${domain}`;
+}
+
+/**
+ * Creates a fully populated school. Returns sign-in details.
+ * Demo (default): made-up email addresses, skipped by the weekly email, for sales demos.
+ * Test (`test.email` given): a real school whose adult accounts all go to your inbox
+ * through + addresses, so password resets, weekly emails and invoices really arrive.
+ */
+export async function createDemoSchool(opts: { test?: { email: string; name?: string } } = {}) {
+  const test = opts.test;
+  const code = await uniqueSchoolCode(test ? "TEST" : "DEMO");
+  const tag = code.toLowerCase();
+  const em = (who: string) => test ? plusAddress(test.email, `${who}.${tag}`) : `${who}.${tag}@demo.presumptuouslearning.test`;
   const adminPassword = tempPassword();
   const school = await createSchool({
-    name: "Riverside Demo Academy", code, isDemo: true,
-    admin: { firstName: "Priya", lastName: "Patel", email: `principal.${code.toLowerCase()}@demo.presumptuouslearning.test`, password: adminPassword },
+    name: test ? (test.name?.trim() || "Riverside Test Academy") : "Riverside Demo Academy", code, isDemo: !test, isTest: !!test,
+    admin: { firstName: "Priya", lastName: "Patel", email: em("principal"), password: adminPassword },
   });
   const coachPassword = tempPassword();
   const coachHash = await hashPassword(coachPassword);
-  const coachA = await db.user.create({ data: { role: "COACH", schoolId: school.id, email: `coach.${code.toLowerCase()}@demo.presumptuouslearning.test`, firstName: "Marcus", lastName: "Reid", passwordHash: coachHash } });
-  const coachB = await db.user.create({ data: { role: "COACH", schoolId: school.id, email: `coach2.${code.toLowerCase()}@demo.presumptuouslearning.test`, firstName: "Sofia", lastName: "Alvarez", passwordHash: coachHash } });
+  const coachA = await db.user.create({ data: { role: "COACH", schoolId: school.id, email: em("coach"), firstName: "Marcus", lastName: "Reid", passwordHash: coachHash } });
+  const coachB = await db.user.create({ data: { role: "COACH", schoolId: school.id, email: em("coach2"), firstName: "Sofia", lastName: "Alvarez", passwordHash: coachHash } });
   const classA = await db.class.create({ data: { schoolId: school.id, name: "Junior Studio A", grades: [3, 4], coaches: { create: [{ coachId: coachA.id }] } } });
   const classB = await db.class.create({ data: { schoolId: school.id, name: "Junior Studio B", grades: [5], coaches: { create: [{ coachId: coachB.id }] } } });
 
@@ -176,7 +190,7 @@ export async function createDemoSchool() {
       },
     });
     if (idx < 4) {
-      const email = `parent${idx + 1}.${code.toLowerCase()}@demo.presumptuouslearning.test`;
+      const email = em(`parent${idx + 1}`);
       if (!firstParentEmail) firstParentEmail = email;
       await db.user.create({ data: { role: "PARENT", schoolId: school.id, email, firstName: ["Sara", "Daniel", "Grace", "Kwame"][idx], lastName: s.last, passwordHash: parentHash, children: { create: { studentId: student.id } } } });
     }
@@ -241,8 +255,9 @@ export async function createDemoSchool() {
     school,
     logins: [
       { label: "School code", value: code },
-      { label: "Principal (school admin)", value: `principal.${code.toLowerCase()}@demo.presumptuouslearning.test / ${adminPassword}` },
-      { label: "Coach", value: `coach.${code.toLowerCase()}@demo.presumptuouslearning.test / ${coachPassword}` },
+      { label: "Principal (school admin)", value: `${em("principal")} / ${adminPassword}` },
+      { label: "Coach", value: `${em("coach")} / ${coachPassword}` },
+      { label: "Second coach", value: `${em("coach2")} / ${coachPassword}` },
       { label: "Parent", value: `${firstParentEmail} / ${parentPassword}` },
       { label: "Student (any demo student)", value: `${firstStudentUsername} / ${studentPassword}` },
     ],

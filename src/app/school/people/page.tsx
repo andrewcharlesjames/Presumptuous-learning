@@ -6,7 +6,7 @@ import { Shell } from "@/components/Shell";
 import { SubjectChips } from "@/components/Status";
 import { latestResults } from "@/lib/records";
 import { gradeName, gradeShort, plural } from "@/lib/subjects";
-import { addStaff, addStudent, importStudents, resetPassword, setActive } from "../actions";
+import { addStaff, addStudent, emailResetLink, importStudents, resetPassword, setActive } from "../actions";
 
 export const metadata = { title: "People" };
 const GRADES = Array.from({ length: 13 }, (_, g) => g);
@@ -86,6 +86,7 @@ export default async function PeoplePage() {
               <td className="small">{s.email}</td>
               <td className="small">{s.coachOf.map(c => c.class.name).join(", ") || <span className="muted">None</span>}</td>
               <td>{s.id !== user.id && <div className="row" style={{ gap: 6, flexWrap: "nowrap" }}>
+                {s.email && s.id !== user.id && <form action={emailResetLink}><input type="hidden" name="id" value={s.id} /><button className="btn small">Email reset link</button></form>}
                 <form action={resetPassword}><input type="hidden" name="id" value={s.id} /><input type="hidden" name="returnTo" value="/school/people" /><button className="btn small">New password</button></form>
                 <form action={setActive}><input type="hidden" name="id" value={s.id} /><input type="hidden" name="active" value={String(!s.active)} /><button className="btn small">{s.active ? "Deactivate" : "Reactivate"}</button></form>
               </div>}</td>
@@ -114,7 +115,7 @@ export default async function PeoplePage() {
               <tr key={p.id} style={p.active ? undefined : { opacity: .5 }}>
                 <td><b>{p.firstName} {p.lastName}</b></td><td className="small">{p.email}</td>
                 <td className="small">{p.children.map(c => `${c.student.firstName} ${c.student.lastName}`).join(", ")}</td>
-                <td><form action={setActive}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="active" value={String(!p.active)} /><button className="btn small">{p.active ? "Deactivate" : "Reactivate"}</button></form></td>
+                <td><div className="row">{p.email && <form action={emailResetLink}><input type="hidden" name="id" value={p.id} /><button className="btn small">Email reset link</button></form>}<form action={setActive}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="active" value={String(!p.active)} /><button className="btn small">{p.active ? "Deactivate" : "Reactivate"}</button></form></div></td>
               </tr>
             ))}</tbody>
           </table></div>

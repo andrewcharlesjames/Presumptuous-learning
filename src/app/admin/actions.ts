@@ -5,7 +5,9 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { setFlash } from "@/lib/flash";
-import { tempPassword } from "@/lib/passwords";
+import { hashPassword, kidPassword, tempPassword } from "@/lib/passwords";
+import { issueResetLink } from "@/lib/resets";
+import { audit } from "@/lib/audit";
 import { createSchool, uniqueSchoolCode } from "@/lib/records";
 import { createDemoSchool } from "@/lib/demo";
 import { addDays, fmtDate, parseIsoDate, todayIn } from "@/lib/dates";
@@ -52,11 +54,25 @@ export async function createDemoAction() {
   redirect("/admin");
 }
 
+export async function createTestSchoolAction(form: FormData) {
+  const user = await requireUser(["PLATFORM_ADMIN"]);
+  const email = z.string().trim().email().safeParse(form.get("email") || user.email);
+  if (!email.success) {
+    await setFlash({ tone: "error", text: "Enter an email address you can receive mail at." });
+    redirect("/admin");
+  }
+  const name = String(form.get("name") ?? "").trim().slice(0, 120);
+  const { school, logins } = await createDemoSchool({ test: { email: email.data, name } });
+  await setFlash({ tone: "ok", text: `Created ${school.name}, a real test school. Every adult account uses a + version of ${email.data.toLowerCase()}, so emails reach your inbox.`, secret: logins });
+  revalidatePath("/admin");
+  redirect("/admin");
+}
+
 export async function deleteDemoAction(form: FormData) {
   await requireUser(["PLATFORM_ADMIN"]);
   const id = String(form.get("id") ?? "");
   const school = await db.school.findUnique({ where: { id } });
-  if (school?.isDemo) {
+  if (school?.isDemo || school?.isTest) {
     await db.school.delete({ where: { id } });
     await setFlash({ tone: "ok", text: `Deleted ${school.name}.` });
   }
@@ -210,4 +226,52 @@ export async function runWeeklyNow() {
   await requireUser(["PLATFORM_ADMIN"]);
   const r = await runWeekly(new Date(), true);
   return toAdmin("/admin/email", "ok", `Weekly email: ${r.considered} parents considered, ${r.sent} sent, ${r.skipped} skipped (email not set up), ${r.failed} failed. Parents already emailed this week were left alone.`);
+}
+
+/* ---------------- people across the platform ---------------- */
+
+const peopleBack = (form: FormData) => {
+  const r = String(form.get("returnTo") ?? "");
+  return r.startsWith("/admin/people") ? r : "/admin/people";
+};
+
+async function targetFor(form: FormData) {
+  const me = await requireUser(["PLATFORM_ADMIN"]);
+  const target = await db.user.findUnique({ where: { id: String(form.get("id") ?? "") } });
+  return { me, target: target && target.id !== me.id ? target : null };
+}
+
+export async function adminSendResetLink(form: FormData) {
+  const { me, target } = await targetFor(form);
+  const path = peopleBack(form);
+  if (!target?.email || target.role === "STUDENT") return toAdmin(path, "error", "Only adults with an email can get a reset link. Use Temporary password for students.");
+  const r = await issueResetLink(target, "Presumptuous Learning support");
+  await audit(me, "password.link", { schoolId: target.schoolId, detail: `${target.firstName} ${target.lastName}` });
+  if (r?.status === "SENT") return toAdmin(path, "ok", `Emailed a reset link to ${target.email}. It works once, for an hour.`);
+  return toAdmin(path, "ok", `Email isn't working right now, so send ${target.firstName} this link yourself. It works once, for an hour.`, [{ label: "Reset link", value: r!.link }]);
+}
+
+export async function adminTempPassword(form: FormData) {
+  const { me, target } = await targetFor(form);
+  const path = peopleBack(form);
+  if (!target) return toAdmin(path, "error", "You can't change that account here. For your own, use Account.");
+  const password = target.role === "STUDENT" ? kidPassword() : tempPassword();
+  await db.user.update({ where: { id: target.id }, data: { passwordHash: await hashPassword(password) } });
+  await db.session.deleteMany({ where: { userId: target.id } });
+  await audit(me, "password.reset", { schoolId: target.schoolId, studentId: target.role === "STUDENT" ? target.id : undefined, detail: `${target.firstName} ${target.lastName}` });
+  return toAdmin(path, "ok", `New password for ${target.firstName} ${target.lastName}. They've been signed out everywhere.`, [
+    ...(target.username ? [{ label: "Username", value: target.username }] : target.email ? [{ label: "Email", value: target.email }] : []),
+    { label: "Password", value: password },
+  ]);
+}
+
+export async function adminSetActive(form: FormData) {
+  const { me, target } = await targetFor(form);
+  const path = peopleBack(form);
+  if (!target) return toAdmin(path, "error", "You can't change your own account here.");
+  const active = form.get("active") === "true";
+  await db.user.update({ where: { id: target.id }, data: { active } });
+  if (!active) await db.session.deleteMany({ where: { userId: target.id } });
+  await audit(me, active ? "account.reactivate" : "account.deactivate", { schoolId: target.schoolId, studentId: target.role === "STUDENT" ? target.id : undefined, detail: `${target.firstName} ${target.lastName}` });
+  return toAdmin(path, "ok", `${target.firstName} ${target.lastName} is now ${active ? "active" : "deactivated"}.`);
 }

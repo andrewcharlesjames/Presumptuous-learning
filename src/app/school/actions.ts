@@ -13,6 +13,7 @@ import { parseIsoDate, schoolYearOf } from "@/lib/dates";
 import { DEFAULT_DAY, ontarioYear, type BlockKindName, type CalendarKindName } from "@/lib/templates";
 import { parseCsv } from "@/lib/csv";
 import { audit } from "@/lib/audit";
+import { issueResetLink } from "@/lib/resets";
 import { students } from "@/lib/licence";
 
 const admin = () => requireSchoolUser(["SCHOOL_ADMIN"]);
@@ -135,6 +136,17 @@ export async function resetPassword(form: FormData) {
     ...(target.username ? [{ label: "Username", value: target.username }] : target.email ? [{ label: "Email", value: target.email }] : []),
     { label: "Password", value: password },
   ]);
+}
+
+/** School admin: email an adult in the school a one-time link to choose their own password. */
+export async function emailResetLink(form: FormData) {
+  const { user, school } = await admin();
+  const target = await db.user.findFirst({ where: { id: String(form.get("id") ?? ""), schoolId: school.id, role: { in: ["COACH", "SCHOOL_ADMIN", "PARENT"] } } });
+  if (!target?.email) return back("/school/people", "error", "That person has no email address. Use New password instead.");
+  const r = await issueResetLink(target, `${user.firstName} ${user.lastName} at ${school.name}`);
+  await audit(user, "password.link", { detail: `${target.firstName} ${target.lastName}` });
+  if (r?.status === "SENT") return back("/school/people", "ok", `Emailed a reset link to ${target.email}. It works once, for an hour.`);
+  return back("/school/people", "ok", `Email isn't working right now, so pass this link to ${target.firstName} yourself. It works once, for an hour.`, [{ label: "Reset link", value: r!.link }]);
 }
 
 export async function setActive(form: FormData) {

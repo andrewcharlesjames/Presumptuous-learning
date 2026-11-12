@@ -4,13 +4,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { clearFailures, createSession, homeFor, recordFailure, throttled } from "@/lib/auth";
-import { hashPassword, newToken, sha256 } from "@/lib/passwords";
-import { appUrl, sendEmail } from "@/lib/email";
+import { hashPassword, sha256 } from "@/lib/passwords";
+import { issueResetLink } from "@/lib/resets";
 import { setFlash } from "@/lib/flash";
 import { audit } from "@/lib/audit";
 
 export type ResetState = { error?: string; sent?: boolean } | undefined;
-const RESET_MINUTES = 60;
 
 async function ipKey(id: string) {
   const ip = ((await headers()).get("x-forwarded-for") ?? "").split(",")[0].trim() || "local";
@@ -25,16 +24,7 @@ export async function requestReset(_: ResetState, form: FormData): Promise<Reset
   if (throttled(key)) return { sent: true };
   recordFailure(key); // counts requests: at most 8 per 15 minutes per address and email
   const user = await db.user.findUnique({ where: { email: email.data.toLowerCase() } });
-  if (user && user.active && user.role !== "STUDENT") {
-    const token = newToken();
-    await db.passwordReset.create({ data: { userId: user.id, tokenHash: sha256(token), expiresAt: new Date(Date.now() + RESET_MINUTES * 60000) } });
-    await sendEmail({
-      kind: "password_reset", to: user.email!, schoolId: user.schoolId, subject: "Reset your Presumptuous Learning password",
-      heading: `Hi ${user.firstName}, let's reset your password`,
-      paragraphs: [`Someone (hopefully you) asked to reset the password for ${user.email}. The link works once, for ${RESET_MINUTES} minutes.`, "If you didn't ask, ignore this email. Your password stays the same."],
-      button: { label: "Choose a new password", href: `${appUrl()}/reset/${token}` },
-    });
-  }
+  if (user && user.active && user.role !== "STUDENT") await issueResetLink(user);
   return { sent: true };
 }
 
