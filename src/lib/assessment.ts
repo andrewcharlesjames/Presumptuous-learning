@@ -50,7 +50,7 @@ export const builtinKey = (sid: SubjectId, p: number, i: number) => `${sid}-${p}
 export function builtinItem(sid: SubjectId, p: number, i: number): BankItem | undefined {
   const it = BANK[sid]?.[p]?.[i];
   if (!it) return undefined;
-  return { id: builtinKey(sid, p, i), sid, grade: p, strand: it[0], skill: it[1], prompt: it[2], choices: [it[3], it[4], it[5], it[6]], explanation: "" };
+  return { id: builtinKey(sid, p, i), sid, grade: p, strand: it[0], skill: it[1], prompt: it[2], choices: [it[3], it[4], it[5], it[6]], explanation: it[7] ?? "" };
 }
 
 /** Lookup against the built-in bank only (tests, demo data, Phase 1 assessments). */

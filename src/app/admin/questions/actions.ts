@@ -30,7 +30,7 @@ export async function saveQuestion(form: FormData) {
     redirect(back);
   }
   const d = parsed.data;
-  const choices = [d.correct, d.wrong1, d.wrong2, d.wrong3].map(x => x.toLowerCase());
+  const choices = [d.correct, d.wrong1, d.wrong2, d.wrong3];
   if (new Set(choices).size < 4) {
     await setFlash({ tone: "error", text: "The four answer choices must all be different." });
     redirect(back);

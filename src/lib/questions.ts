@@ -10,10 +10,10 @@ let seeding: Promise<void> | null = null;
 /** Adds any built-in questions missing from the database. Never overwrites edits. Runs once per server process. */
 export function ensureBankSeeded(): Promise<void> {
   seeding ??= (async () => {
-    const data = (Object.entries(BANK) as [SubjectId, Record<number, string[][]>][]).flatMap(([sid, pools]) =>
+    const data = (Object.entries(BANK) as [SubjectId, Record<number, (string | undefined)[][]>][]).flatMap(([sid, pools]) =>
       Object.entries(pools).flatMap(([p, items]) => items.map((it, i) => ({
-        key: builtinKey(sid, +p, i), subject: sid, grade: +p, strand: it[0], skill: it[1], prompt: it[2],
-        correct: it[3], wrong1: it[4], wrong2: it[5], wrong3: it[6], source: "builtin",
+        key: builtinKey(sid, +p, i), subject: sid, grade: +p, strand: it[0]!, skill: it[1]!, prompt: it[2]!,
+        correct: it[3]!, wrong1: it[4]!, wrong2: it[5]!, wrong3: it[6]!, explanation: it[7] ?? "", source: "builtin",
       }))));
     await db.question.createMany({ data, skipDuplicates: true });
   })().catch(e => { seeding = null; throw e; });

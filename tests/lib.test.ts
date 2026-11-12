@@ -9,9 +9,14 @@ import { isoDate, utcDate, todayIn, parseIsoDate } from "../src/lib/dates.ts";
 
 test("every bank item has 4 distinct options", () => {
   for (const [sid, pools] of Object.entries(BANK)) for (const [p, items] of Object.entries(pools)) for (const it of items) {
-    assert.equal(it.length, 7, `${sid}/${p}`);
-    assert.equal(new Set(it.slice(3)).size, 4, `${sid}/${p}: ${it[2]}`);
+    assert.ok(it.length === 7 || it.length === 8, `${sid}/${p}`);
+    assert.equal(new Set(it.slice(3, 7)).size, 4, `${sid}/${p}: ${it[2]}`);
+    if (it.length === 8) assert.ok(it[7]!.length > 10, `${sid}/${p}: explanation`);
   }
+});
+
+test("Phase 2 additions: every Language, Science and Social Studies pool has at least 6 questions", () => {
+  for (const sid of ["lang", "sci", "soc"] as const) for (let p = 0; p <= 13; p++) assert.ok((BANK[sid][p]?.length ?? 0) >= 6, `${sid}/${p}`);
 });
 
 test("every grade gets an assessment for every subject it offers", () => {

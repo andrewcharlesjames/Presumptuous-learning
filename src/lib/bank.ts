@@ -2,9 +2,10 @@
 // Each item: [strand, skill, question, CORRECT, wrong, wrong, wrong]
 // Pools are keyed by grade: 0 = Kindergarten, 1–12, 13 = beyond Grade 12.
 // A student in grade g is asked 2 items from pool g-1, all 3 from pool g, and 2 from pool g+1.
-// Phase 2 moves this bank into the database with an admin editor.
+// The database is the live bank (see questions.ts); this file seeds it. Phase 2 additions live in bank-extra.ts.
+import { BANK_EXTRA } from "./bank-extra.ts";
 
-export type Item = [strand: string, skill: string, question: string, correct: string, w1: string, w2: string, w3: string];
+export type Item = [strand: string, skill: string, question: string, correct: string, w1: string, w2: string, w3: string, explanation?: string];
 export type SubjectId = "lang" | "math" | "sci" | "soc" | "fsl" | "arts" | "hpe" | "tech" | "bus" | "ssh" | "gce";
 export type Mode = "repair" | "practice" | "stretch";
 export type Bank = Record<SubjectId, Record<number, Item[]>>;
@@ -414,3 +415,11 @@ export const METHODS: Record<SubjectId, Record<Mode, string>> = {
        practice:"Apply {s} to your own plans: update your Individual Pathways Plan or résumé.",
        stretch:"Take one real step on {s}: an informational interview, a job shadow or a program comparison."}
 };
+
+// Append the Phase 2 additions after each pool's original questions, so existing keys stay the same.
+for (const [sid, pools] of Object.entries(BANK_EXTRA) as [SubjectId, Record<number, Item[]>][]) {
+  for (const [p, items] of Object.entries(pools)) {
+    const pool = (BANK[sid][Number(p)] ??= []);
+    pool.push(...items);
+  }
+}
