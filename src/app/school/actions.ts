@@ -277,6 +277,13 @@ export async function saveSettings(form: FormData) {
   const p = settingsSchema.safeParse({ name: form.get("name"), coachTitle: form.get("coachTitle"), timezone: form.get("timezone") });
   if (!p.success) return back("/school/settings", "error", "Check the school name and title.");
   try { new Intl.DateTimeFormat("en-CA", { timeZone: p.data.timezone }); } catch { return back("/school/settings", "error", "That time zone isn't recognised."); }
-  await db.school.update({ where: { id: school.id }, data: { ...p.data, aiTutor: form.get("aiTutor") === "on" } });
+  const launchRaw = String(form.get("launchDay") ?? "");
+  const launchDay = launchRaw ? parseIsoDate(launchRaw) : null;
+  if (launchRaw && !launchDay) return back("/school/settings", "error", "That Launch Day date isn't valid.");
+  await db.school.update({ where: { id: school.id }, data: { ...p.data, aiTutor: form.get("aiTutor") === "on", ...(launchDay ? { launchDay } : {}) } });
+  if (launchDay && (!school.launchDay || school.launchDay.getTime() !== launchDay.getTime())) {
+    // Move every project's Launch Day milestone to the new date.
+    await db.projectMilestone.updateMany({ where: { key: "launch", project: { schoolId: school.id, schoolYear: schoolYearOf(launchDay) } }, data: { dueDate: launchDay } });
+  }
   return back("/school/settings", "ok", "Settings saved.");
 }

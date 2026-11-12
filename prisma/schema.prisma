@@ -62,6 +62,7 @@ model School {
   yearEnd    DateTime @db.Date
   isDemo     Boolean  @default(false)
   aiTutor    Boolean  @default(false) // school has opted in to AI explanations for students
+  launchDay  DateTime? @db.Date // Launch Day for student projects (May)
   createdAt  DateTime @default(now())
 
   users      User[]
@@ -102,6 +103,7 @@ model User {
   notesWritten    CoachNote[]        @relation("NoteAuthor")
   artworks        Artwork[]          @relation("ArtworkStudent")
   artFeedback     ArtFeedback[]      @relation("FeedbackAuthor")
+  projects        Project[]          @relation("ProjectStudent")
   attendance      Attendance[]   @relation("AttendanceStudent")
   markedAttendance Attendance[]  @relation("AttendanceMarker")
 
@@ -452,4 +454,60 @@ model ArtFeedback {
   createdAt DateTime @default(now())
 
   @@index([artworkId])
+}
+
+// ---------------- Phase 6: Life Skills and Purpose projects ----------------
+
+enum ProjectType {
+  LIFE_SKILLS // a business the student launches
+  PURPOSE // a community impact or give-back project
+}
+
+enum MilestoneStatus {
+  TODO
+  SUBMITTED
+  NEEDS_WORK
+  APPROVED
+}
+
+model Project {
+  id         String             @id @default(cuid())
+  schoolId   String
+  studentId  String
+  student    User               @relation("ProjectStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  type       ProjectType
+  schoolYear Int // the September it started
+  interview  Json? // the student's discovery answers
+  ideas      Json? // AI-suggested ideas
+  title      String             @default("")
+  oneLiner   String             @default("")
+  problem    String             @default("")
+  audience   String             @default("")
+  plan       String             @default("")
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  milestones ProjectMilestone[]
+
+  @@unique([studentId, type, schoolYear])
+  @@index([schoolId])
+}
+
+model ProjectMilestone {
+  id           String          @id @default(cuid())
+  projectId    String
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  position     Int
+  key          String
+  title        String
+  description  String
+  dueDate      DateTime        @db.Date
+  status       MilestoneStatus @default(TODO)
+  evidence     String          @default("")
+  link         String          @default("")
+  feedback     String          @default("")
+  submittedAt  DateTime?
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  @@index([projectId, position])
 }

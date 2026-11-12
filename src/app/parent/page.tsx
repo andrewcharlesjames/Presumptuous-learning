@@ -6,7 +6,8 @@ import { SplitBar, StatusPill } from "@/components/Status";
 import { PasswordForm } from "@/components/PasswordForm";
 import { countStatuses, dayInfo, latestResults } from "@/lib/records";
 import { practiceSummary } from "@/lib/practice";
-import { addDays, fmtStamp, isoDate, todayIn } from "@/lib/dates";
+import { addDays, fmtStamp, isoDate, schoolYearOf, todayIn } from "@/lib/dates";
+import { PROJECT_LABEL } from "@/lib/projects";
 import { dayStatuses, streaks, weekRange } from "@/lib/schoolday";
 import { moodLabel } from "@/lib/prompts";
 import { WeekStrip } from "@/components/DayParts";
@@ -40,6 +41,7 @@ export default async function ParentHome() {
     db.coachNote.findMany({ where: { studentId: { in: ids }, shared: true }, include: { author: true }, orderBy: { createdAt: "desc" }, take: 20 }),
   ]);
   const doneA = await completion(kidAssignments);
+  const kidProjects = await db.project.findMany({ where: { studentId: { in: ids }, schoolYear: schoolYearOf(info.date) }, include: { milestones: { orderBy: { position: "asc" } } } });
   const artCounts = new Map((await db.artwork.groupBy({ by: ["studentId"], where: { studentId: { in: ids } }, _count: true })).map(c => [c.studentId, c._count]));
   return (
     <Shell user={user}>
@@ -91,6 +93,10 @@ export default async function ParentHome() {
                   </>
                 );
               })()}
+              {kidProjects.filter(p => p.studentId === k.id).map(p => {
+                const done = p.milestones.filter(m => m.status === "APPROVED").length;
+                return <p key={p.id} className="small"><b>{PROJECT_LABEL[p.type]}:</b> <Link href={`/students/${k.id}/projects`}>{p.title || "choosing an idea"}</Link> · {done} of {p.milestones.length} steps</p>;
+              })}
               <p className="small"><b>{streakMap.get(k.id)?.current ?? 0}</b>-day streak</p>
               <WeekStrip days={weekStatus.get(k.id) ?? []} today={isoDate(info.date)} since={isoDate(todayIn(school.timezone, k.createdAt))} />
               <p className="small">Practice this week: {(() => { const p = practice.get(k.id); return p ? `${p.sets} set${p.sets === 1 ? "" : "s"}, ${p.questions} questions, ${Math.round((p.correct / Math.max(1, p.questions)) * 100)}% correct` : "none yet"; })()}</p>

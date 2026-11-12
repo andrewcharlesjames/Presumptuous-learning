@@ -6,7 +6,7 @@ import { CheckIn, PromptTask, Reflect, WeekStrip } from "@/components/DayParts";
 import { dayInfo, latestScored, masteredSet } from "@/lib/records";
 import { learnHref } from "@/lib/links";
 import { buildPlan, MODE_LABEL, type PlanBlock } from "@/lib/plan";
-import { clockIn, fmtClock, fmtDate, fmtLong, isoDate, weekdayIndex, todayIn } from "@/lib/dates";
+import { clockIn, fmtClock, fmtDate, fmtLong, isoDate, schoolYearOf, weekdayIndex, todayIn } from "@/lib/dates";
 import { gradeName, subjectsForGrade } from "@/lib/subjects";
 import { BLOCK_KIND_LABEL, type BlockKindName } from "@/lib/templates";
 import { artsPromptFor, lifePromptFor, mindfulnessFor } from "@/lib/prompts";
@@ -14,6 +14,7 @@ import { dayBounds, dayStatuses, streaks, weekRange } from "@/lib/schoolday";
 import { startAssessment } from "./actions";
 import { startPractice } from "./practice/actions";
 import { completion, describe } from "@/lib/assignments";
+import { PROJECT_LABEL } from "@/lib/projects";
 
 export const metadata = { title: "Today" };
 
@@ -34,6 +35,7 @@ export default async function StudentToday() {
     streaks(school, [user.id]),
   ]);
   const now = clockIn(school.timezone);
+  const myProjects = await db.project.findMany({ where: { studentId: user.id, schoolYear: schoolYearOf(info.date) }, include: { milestones: { orderBy: { position: "asc" } } } });
   const myAssignments = await db.assignment.findMany({ where: { targets: { some: { studentId: user.id } } }, include: { targets: { where: { studentId: user.id } }, createdBy: true }, orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }], take: 20 });
   const finishedA = await completion(myAssignments);
   const openA = myAssignments.filter(a => !finishedA.has(`${a.id}:${user.id}`));
@@ -102,7 +104,17 @@ export default async function StudentToday() {
       case "ASSEMBLY": return <CheckIn log={log} mindful={mindful} />;
       case "ACADEMICS": return learnList;
       case "ARTS": return <PromptTask kind="arts" label="Today's creative prompt" prompt={artsPromptFor(info.date, grade)} done={!!log?.artsDone} studioHref="/student/studio" />;
-      case "LIFE_SKILLS": return <PromptTask kind="life" label={life.track} prompt={life.prompt} done={!!log?.lifeDone} />;
+      case "LIFE_SKILLS": return (
+        <>
+          <PromptTask kind="life" label={life.track} prompt={life.prompt} done={!!log?.lifeDone} />
+          <div className="stack" style={{ gap: 4, marginTop: 8 }}>
+            {myProjects.length ? myProjects.map(pr => {
+              const nx = pr.milestones.find(m => m.status !== "APPROVED");
+              return <p key={pr.id} className="small"><b>{PROJECT_LABEL[pr.type]}:</b> {nx ? <>next step <Link href={`/student/projects/${pr.id}`}>{nx.title}</Link>, due {fmtDate(nx.dueDate, { month: "short", day: "numeric" })}{nx.status === "NEEDS_WORK" && <> <span className="pill below">Needs work</span></>}</> : "all steps approved"}</p>;
+            }) : <p className="small"><Link href="/student/projects">Start your Life Skills and Purpose projects</Link></p>}
+          </div>
+        </>
+      );
       case "REFLECTION": return <Reflect log={log} />;
       default: return null;
     }

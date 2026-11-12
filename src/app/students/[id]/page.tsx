@@ -102,6 +102,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
         </div>
         <div className="row">
           <Link className="btn" href={`/students/${student.id}/portfolio`}>{self ? "My portfolio" : "Portfolio"}</Link>
+          <Link className="btn" href={self ? "/student/projects" : `/students/${student.id}/projects`}>{self ? "My projects" : "Projects"}</Link>
           {self && scored && <form action={startAssessment}><input type="hidden" name="fresh" value="1" /><button className="btn">Retake the assessment</button></form>}
         </div>
       </div>
