@@ -91,6 +91,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
     staff ? skillMenu([grade]) : Promise.resolve({}),
   ]);
   const completed = await completion(assignments);
+  const hasReport = !!(await db.reportCard.findFirst({ where: { studentId: id, status: "FINAL" }, select: { id: true } }));
   const subjectOptions = subjectsForGrade(grade).map(x => ({ id: x.id, name: x.name(grade) }));
   const h0 = (r: StoredResult) => grade + (r.level === 4 ? 1 : r.level === 3 ? 0 : r.level === 2 ? -1 : -2);
   const weeklyMastered = Array.from({ length: 6 }, (_, i) => {
@@ -110,6 +111,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
         <div className="row">
           <Link className="btn" href={`/students/${student.id}/portfolio`}>{self ? "My portfolio" : "Portfolio"}</Link>
           <Link className="btn" href={self ? "/student/projects" : `/students/${student.id}/projects`}>{self ? "My projects" : "Projects"}</Link>
+          {(staff || hasReport) && <Link className="btn" href={staff ? `/students/${student.id}/report/edit` : `/students/${student.id}/report`}>{staff ? "Report card" : self ? "My report card" : "Report card"}</Link>}
           {self && scored && <form action={startAssessment}><input type="hidden" name="fresh" value="1" /><button className="btn">Retake the assessment</button></form>}
         </div>
       </div>

@@ -26,6 +26,7 @@ export default async function ParentHome() {
   const links = await db.parentLink.findMany({ where: { parentId: user.id }, include: { student: true }, orderBy: { createdAt: "asc" } });
   const kids = links.map(l => l.student);
   const ids = kids.map(k => k.id);
+  const releasedReports = new Set((await db.reportCard.findMany({ where: { studentId: { in: ids }, status: "FINAL" }, select: { studentId: true } })).map(r => r.studentId));
   const info = await dayInfo(school);
   const [latest, att, inProgress, practice] = await Promise.all([
     latestResults(ids),
@@ -65,6 +66,7 @@ export default async function ParentHome() {
                 <div><h2>{k.firstName} {k.lastName}</h2><span className="small muted">{gradeName(k.grade ?? 0)}</span></div>
                 <div className="row" style={{ gap: 6 }}>
                   <Link className="btn small" href={`/students/${k.id}/portfolio`}>Portfolio ({artCounts.get(k.id) ?? 0})</Link>
+                  {releasedReports.has(k.id) && <Link className="btn small" href={`/students/${k.id}/report`}>Report card</Link>}
                   <Link className="btn small primary" href={`/students/${k.id}`}>See plan</Link>
                 </div>
               </div>

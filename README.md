@@ -71,6 +71,25 @@ src/lib/templates.ts      default school day and Ontario calendar template
 src/app/                  pages by role: admin/, school/, coach/, parent/, student/, students/[id]
 ```
 
+## Phase 9: email, sign-in options and report cards
+
+- **Email** through [Resend](https://resend.com): password reset links, a Friday parent email (each child's week, with one-click unsubscribe), pilot request alerts and invoices. Without `RESEND_API_KEY` and `EMAIL_FROM` nothing is sent and each email is logged as not sent. Platform admin → **Email** shows every email, sends a test and can run the weekly email on demand.
+- **Forgot your password** for adults: a link that works once for 60 minutes and signs out other devices.
+- **Sign in with Google or Microsoft** for staff and parents. Google connects automatically by verified email; Microsoft is connected once from **Account** after a normal sign-in.
+- **QR sign-in cards** for students (class page → Sign-in cards): print, scan, replace a lost card.
+- **Report cards**: fall progress report, Term 1 and Term 2, in Ontario's format (progress words, letters for Grades 1–6, percentages for 7–12, comments only for Kindergarten), six learning skills (E/G/S/N) suggested from the student's term, comment drafts from their mastery data. Coaches release them to families; a released report never changes.
+
+### Phase 9 setup in Railway (all optional)
+
+| Variable | What it does |
+| --- | --- |
+| `APP_URL` | Your app's public address, e.g. `https://app.presumptuouslearning.ca`, used in email links and sign-in. Railway's own domain is used if unset. |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Turn on email. `EMAIL_FROM` like `Presumptuous Learning <hello@presumptuouslearning.ca>` on a domain verified in Resend. |
+| `EMAIL_REPLY_TO`, `SALES_EMAIL` | Where replies go; where pilot alerts go (default `ADMIN_EMAIL`). |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Sign in with Google. Redirect URI: `APP_URL/api/auth/google/callback`. |
+| `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT` | Sign in with Microsoft. Redirect URI: `APP_URL/api/auth/microsoft/callback`. Tenant defaults to `common`. |
+| `WEEKLY_EMAIL=off` | Stops the Friday parent email. |
+
 ## Phase 8: sales and growth
 
 - **Marketing site** at `/`: how it works, a view for each role, the school day, projects and Launch Day, privacy, pricing, and a **Request a pilot** form (spam honeypot and rate limit).

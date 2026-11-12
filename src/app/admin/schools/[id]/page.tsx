@@ -6,7 +6,7 @@ import { Shell } from "@/components/Shell";
 import { addDays, fmtDate, isoDate, todayIn } from "@/lib/dates";
 import { licenceState, money } from "@/lib/licence";
 import { Info } from "@/components/Info";
-import { createInvoice, saveLicence, setInvoiceStatus } from "../../actions";
+import { resendInvoice, createInvoice, saveLicence, setInvoiceStatus } from "../../actions";
 
 export const metadata = { title: "School licence" };
 const long = { month: "short", day: "numeric", year: "numeric" } as const;
@@ -68,6 +68,7 @@ export default async function SchoolLicencePage({ params }: { params: Promise<{ 
                 <td className="num">{money(inv.totalCents)}</td>
                 <td><span className="chip">{inv.status === "UNPAID" ? `Due ${fmtDate(inv.dueDate, long)}` : inv.status === "PAID" ? "Paid" : "Void"}</span></td>
                 <td><div className="row">
+                  {inv.status !== "VOID" && <form action={resendInvoice}><input type="hidden" name="id" value={inv.id} /><button className="btn small">Email</button></form>}
                   {inv.status !== "PAID" && <form action={setInvoiceStatus}><input type="hidden" name="id" value={inv.id} /><input type="hidden" name="status" value="PAID" /><button className="btn small">Mark paid</button></form>}
                   {inv.status === "UNPAID" && <form action={setInvoiceStatus}><input type="hidden" name="id" value={inv.id} /><input type="hidden" name="status" value="VOID" /><button className="btn small danger">Void</button></form>}
                   {inv.status !== "UNPAID" && <form action={setInvoiceStatus}><input type="hidden" name="id" value={inv.id} /><input type="hidden" name="status" value="UNPAID" /><button className="btn small">Mark unpaid</button></form>}

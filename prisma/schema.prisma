@@ -95,8 +95,15 @@ model User {
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
   lastLoginAt  DateTime?
+  googleSub    String?  @unique // linked Google account
+  microsoftSub String?  @unique // linked Microsoft account
+  cardToken    String?  @unique // students: printed QR sign-in card
+  weeklyEmail  Boolean  @default(true) // parents: weekly progress email
+  emailToken   String?  @unique // one-click unsubscribe link
 
   sessions        Session[]
+  resets          PasswordReset[]
+  reportCards     ReportCard[]       @relation("ReportStudent")
   coachOf         ClassCoach[]
   studentIn       ClassStudent[]
   children        ParentLink[]   @relation("ParentToLink")
@@ -621,4 +628,62 @@ model Lead {
   status     LeadStatus @default(NEW)
   schoolId   String?
   createdAt  DateTime   @default(now())
+}
+
+/// Every email the platform tries to send, so admins can see what went out (and what was skipped).
+model EmailLog {
+  id        String      @id @default(cuid())
+  kind      String // password_reset, weekly, pilot_alert, invoice
+  to        String
+  subject   String
+  status    EmailStatus
+  error     String      @default("")
+  dedupeKey String?     @unique // e.g. weekly:<parentId>:<monday>, so a digest is never sent twice
+  schoolId  String?
+  createdAt DateTime    @default(now())
+
+  @@index([createdAt])
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+  SKIPPED // email isn't set up yet
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+/// A term report for one student, written by a coach and released to the family when final.
+model ReportCard {
+  id             String       @id @default(cuid())
+  schoolId       String
+  studentId      String
+  student        User         @relation("ReportStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  schoolYear     Int
+  term           Int // 0 = fall progress report, 1 = term 1, 2 = term 2
+  learningSkills Json // { responsibility: "E" | "G" | "S" | "N", ... }
+  comments       Json // { [subjectId]: string }
+  general        String       @default("")
+  nextSteps      String       @default("")
+  snapshot       Json? // marks and attendance as of the last save, so a released report never changes
+  status         ReportStatus @default(DRAFT)
+  finalizedAt    DateTime?
+  updatedById    String?
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([studentId, schoolYear, term])
+  @@index([schoolId])
+}
+
+enum ReportStatus {
+  DRAFT
+  FINAL
 }

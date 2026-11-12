@@ -19,6 +19,13 @@ export const AUDIT_LABEL: Record<string, string> = {
   "staff.add": "Added staff account",
   "student.add": "Added student",
   "student.import": "Imported students",
+  "password.self_reset": "Reset own password by email",
+  "account.link": "Connected a Google or Microsoft account",
+  "account.unlink": "Disconnected a Google or Microsoft account",
+  "card.print": "Printed student sign-in cards",
+  "card.reset": "Replaced a student's sign-in card",
+  "report.final": "Released a report card",
+  "report.reopen": "Reopened a report card",
 };
 
 type Actor = { id: string; firstName: string; lastName: string; role: string; schoolId: string | null };

@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { appUrl, sendEmail } from "@/lib/email";
 
 const leadSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -29,8 +30,14 @@ export async function requestPilot(form: FormData) {
   if (!p.success) redirect("/?pilot=error#pilot");
   recent.set(ip, [...hits, now]);
   const d = p.data;
-  await db.lead.create({
+  const lead = await db.lead.create({
     data: { name: d.name, role: d.role, schoolName: d.schoolName, email: d.email.toLowerCase(), phone: d.phone, students: typeof d.students === "number" ? d.students : null, grades: d.grades, message: d.message },
+  });
+  const to = process.env.SALES_EMAIL || process.env.ADMIN_EMAIL;
+  if (to) await sendEmail({
+    kind: "pilot_alert", to, subject: `Pilot request: ${lead.schoolName}`, heading: `New pilot request from ${lead.schoolName}`,
+    paragraphs: [`${lead.name}${lead.role ? `, ${lead.role}` : ""} · ${lead.email}${lead.phone ? ` · ${lead.phone}` : ""}`, `${lead.students ? `About ${lead.students} students` : "Students not given"}${lead.grades ? ` · Grades ${lead.grades}` : ""}`, ...(lead.message ? [lead.message] : [])],
+    button: { label: "Open pilot requests", href: `${appUrl()}/admin/leads` },
   });
   redirect("/?pilot=sent#pilot");
 }

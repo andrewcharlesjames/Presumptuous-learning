@@ -8,8 +8,10 @@ import { setFlash } from "@/lib/flash";
 import { tempPassword } from "@/lib/passwords";
 import { createSchool, uniqueSchoolCode } from "@/lib/records";
 import { createDemoSchool } from "@/lib/demo";
-import { addDays, parseIsoDate, todayIn } from "@/lib/dates";
+import { addDays, fmtDate, parseIsoDate, todayIn } from "@/lib/dates";
 import { invoiceTotals, money, PILOT_DAYS } from "@/lib/licence";
+import { appUrl, sendEmail } from "@/lib/email";
+import { runWeekly } from "@/lib/weekly";
 
 const schoolSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -123,10 +125,11 @@ export async function createInvoice(form: FormData) {
     const n = await db.invoice.count({ where: { number: { startsWith: `PL-${year}-` } } });
     const number = `PL-${year}-${String(n + 1 + attempt).padStart(4, "0")}`;
     try {
-      await db.invoice.create({
+      const inv = await db.invoice.create({
         data: { schoolId: id, number, dueDate: addDays(today, d.dueDays), periodStart: ps, periodEnd: pe, seats: d.seats, unitPriceCents, ...totals, notes: d.notes ?? "" },
       });
-      return toAdmin(path, "ok", `Invoice ${number} created for ${money(totals.totalCents)}. The school admin can see and print it under Plan & billing.`);
+      const mailed = await emailInvoice(inv.id);
+      return toAdmin(path, "ok", `Invoice ${number} created for ${money(totals.totalCents)}. ${mailed}`);
     } catch (e) {
       if ((e as { code?: string }).code !== "P2002") throw e;
     }
@@ -170,4 +173,41 @@ export async function convertLead(form: FormData) {
   await db.lead.update({ where: { id: lead.id }, data: { status: "CONVERTED", schoolId: school.id } });
   return toAdmin("/admin/leads", "ok", `${d.name} has a ${PILOT_DAYS}-day pilot for ${d.seats} students. Send these sign-in details to ${d.firstName}.`,
     [{ label: "School code", value: code }, { label: "Admin email", value: d.email.toLowerCase() }, { label: "Temporary password", value: password }]);
+}
+
+/** Emails an invoice to the school's billing email. Returns a sentence for the flash message. */
+async function emailInvoice(invoiceId: string): Promise<string> {
+  const inv = await db.invoice.findUnique({ where: { id: invoiceId }, include: { school: true } });
+  if (!inv) return "";
+  if (!inv.school.billingEmail) return "The school has no billing email, so it wasn't emailed. The school admin can see it under Billing.";
+  const r = await sendEmail({
+    kind: "invoice", to: inv.school.billingEmail, schoolId: inv.schoolId, subject: `Invoice ${inv.number} from Presumptuous Learning`,
+    heading: `Invoice ${inv.number}`,
+    paragraphs: [
+      `${inv.school.name}: Presumptuous Learning licence for ${inv.seats} students, ${fmtDate(inv.periodStart, { month: "long", day: "numeric", year: "numeric" })} to ${fmtDate(inv.periodEnd, { month: "long", day: "numeric", year: "numeric" })}.`,
+      `Total ${money(inv.totalCents)} (including ${money(inv.taxCents)} HST), due ${fmtDate(inv.dueDate, { month: "long", day: "numeric", year: "numeric" })}.`,
+      "A school admin can open, print or save the invoice as a PDF from Billing.",
+    ],
+    button: { label: "View the invoice", href: `${appUrl()}/invoices/${inv.id}` },
+  });
+  return r === "SENT" ? `It was emailed to ${inv.school.billingEmail}.` : r === "SKIPPED" ? "Email isn't set up yet, so it wasn't emailed; the school admin can see it under Billing." : `Emailing it to ${inv.school.billingEmail} failed; see Email for details.`;
+}
+
+export async function resendInvoice(form: FormData) {
+  await requireUser(["PLATFORM_ADMIN"]);
+  const inv = await db.invoice.findUnique({ where: { id: String(form.get("id") ?? "") } });
+  if (!inv) redirect("/admin");
+  return toAdmin(`/admin/schools/${inv.schoolId}`, "ok", `Invoice ${inv.number}: ${await emailInvoice(inv.id)}`);
+}
+
+export async function sendTestEmail() {
+  const user = await requireUser(["PLATFORM_ADMIN"]);
+  const r = await sendEmail({ kind: "test", to: user.email!, subject: "Test email from Presumptuous Learning", heading: "Email works", paragraphs: ["If you're reading this, Presumptuous Learning can send email."] });
+  return toAdmin("/admin/email", r === "SENT" ? "ok" : "error", r === "SENT" ? `Sent a test email to ${user.email}.` : r === "SKIPPED" ? "Email isn't set up yet. Add RESEND_API_KEY and EMAIL_FROM in Railway." : "The test email failed. See the log below.");
+}
+
+export async function runWeeklyNow() {
+  await requireUser(["PLATFORM_ADMIN"]);
+  const r = await runWeekly(new Date(), true);
+  return toAdmin("/admin/email", "ok", `Weekly email: ${r.considered} parents considered, ${r.sent} sent, ${r.skipped} skipped (email not set up), ${r.failed} failed. Parents already emailed this week were left alone.`);
 }

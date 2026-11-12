@@ -13,7 +13,7 @@ const ROLE_LABEL = { PLATFORM_ADMIN: "Platform admin", SCHOOL_ADMIN: "School adm
 
 export function navFor(user: CurrentUser): { href: string; label: string }[] {
   switch (user.role) {
-    case "PLATFORM_ADMIN": return [{ href: "/admin", label: "Schools" }, { href: "/admin/questions", label: "Question bank" }, { href: "/admin/lessons", label: "Lessons" }, { href: "/admin/leads", label: "Pilot requests" }];
+    case "PLATFORM_ADMIN": return [{ href: "/admin", label: "Schools" }, { href: "/admin/questions", label: "Question bank" }, { href: "/admin/lessons", label: "Lessons" }, { href: "/admin/leads", label: "Pilot requests" }, { href: "/admin/email", label: "Email" }];
     case "SCHOOL_ADMIN": return [
       { href: "/school", label: "Overview" }, { href: "/school/people", label: "People" }, { href: "/school/classes", label: "Classes" },
       { href: "/school/schedule", label: "School day" }, { href: "/school/calendar", label: "Calendar" }, { href: "/showcase", label: "Showcase" }, { href: "/school/privacy", label: "Privacy" }, { href: "/school/billing", label: "Billing" }, { href: "/school/settings", label: "Settings" },
@@ -40,7 +40,7 @@ export async function Shell({ user, children }: { user: CurrentUser; children: R
         <Logo href="/" />
         <NavLinks items={navFor(user)} />
         <div className="who">
-          <span className="muted">{user.firstName} · {role}{user.school ? ` · ${user.school.name}` : ""}</span>
+          <span className="muted"><a href="/account" className="acct" title="Your account">{user.firstName}</a> · {role}{user.school ? ` · ${user.school.name}` : ""}</span>
           <form action={signOut}><button className="btn small" type="submit">Sign out</button></form>
         </div>
       </header>

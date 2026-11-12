@@ -41,8 +41,12 @@ export default function PrivacyNotice() {
           </ul>
           <p>Student names, usernames and email addresses are never sent to the AI service. Schools can require a parent&apos;s consent before a student uses the AI tutor or project ideas.</p></section>
 
+        <section className="stack"><h2>Email and sign-in</h2>
+          <p>Emails (password resets, the weekly parent email and invoices) are sent through Resend, which receives the recipient&apos;s email address and the email&apos;s content. The weekly email includes the child&apos;s first name and their progress that week. Parents can stop it with one click from any weekly email or from Account.</p>
+          <p>Staff and parents can choose to sign in with Google or Microsoft. We receive only that account&apos;s ID, name and email address, and never see its password. Students don&apos;t use Google or Microsoft sign-in. A student&apos;s printed QR sign-in card works like a password; schools can replace a lost card at any time.</p></section>
+
         <section className="stack"><h2>Where it&apos;s stored</h2>
-          <p>Records are stored in a database hosted by Railway. AI requests are processed by Anthropic. Both currently process data in the United States. Schools that need data kept in Canada should raise this before signing up.</p></section>
+          <p>Records are stored in a database hosted by Railway. AI requests are processed by Anthropic and emails are sent by Resend. All three currently process data in the United States. Schools that need data kept in Canada should raise this before signing up.</p></section>
 
         <section className="stack"><h2>How long we keep it</h2>
           <p>Records are kept while the student is enrolled with their school, unless the school deletes them sooner. When a school deletes a student, their account, records and files are removed permanently. The audit log keeps a record that the deletion happened.</p></section>

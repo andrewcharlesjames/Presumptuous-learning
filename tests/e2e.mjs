@@ -591,6 +591,119 @@ await shot(pp, "15-phone-dark-student");
   await shot(P.page, "47-demo-overview");
 }
 
+/* 8c. Phase 9: email, sign-in options, QR cards, report cards */
+{
+  const { PrismaClient } = createRequire(import.meta.url)("@prisma/client");
+  const prisma = new PrismaClient();
+  const { createHash, randomBytes } = await import("node:crypto");
+  const classId = classUrl.split("/").pop();
+  const jordan = await prisma.user.findFirst({ where: { role: "STUDENT", firstName: "Jordan", lastName: "Lee" }, orderBy: { createdAt: "desc" } });
+
+  // Report card: drafts are filled in; family can't see a draft; release needs every learning skill
+  await C.page.goto(`${BASE}/coach/classes/${classId}/reports?term=1`);
+  ok(await C.page.locator("h1:has-text('Report cards')").count() === 1, "coach opens class report cards");
+  await C.page.locator("tr:has-text('Jordan') a:has-text('Write')").click();
+  await C.page.waitForURL(/\/report\/edit/);
+  const draft = await C.page.locator("textarea[name^=comment_]").first().inputValue();
+  ok(draft.startsWith("Jordan "), `subject comment is drafted from the student's work ("${draft.slice(0, 60)}…")`);
+  await C.page.selectOption("#skill_collaboration", "");
+  await C.page.click("button:has-text('Save draft')");
+  ok((await flashText(C.page, "Draft saved")).includes("Draft saved"), "coach saves a draft report");
+  await F.page.goto(`${BASE}/students/${jordan.id}/report?term=1`);
+  ok(await F.page.locator("text=No term 1 report card yet").count() === 1, "parent can't see a draft report");
+  await C.page.click("button:has-text('Release to family')");
+  ok((await flashText(C.page, "not released")).includes("Collaboration"), "release is blocked until every learning skill is rated");
+  for (const k of ["responsibility", "organization", "independent", "collaboration", "initiative", "selfRegulation"]) await C.page.selectOption(`#skill_${k}`, "G");
+  await C.page.fill("#general", "Jordan has grown in confidence this term.");
+  await C.page.click("button:has-text('Release to family')");
+  await C.page.waitForURL(/\/report\?term=1/);
+  ok((await flashText(C.page, "Released")).includes("Released"), "coach releases the report");
+  await F.page.goto(`${BASE}/parent`);
+  await F.page.click("a:has-text('Report card')");
+  await F.page.waitForURL(/\/report/);
+  ok(await F.page.locator("h1:has-text('Term 1 report card')").count() === 1 && await F.page.locator("text=Jordan has grown in confidence").count() === 1, "parent opens the released report card");
+  ok(await F.page.locator("text=Learning skills and work habits").count() === 1 && await F.page.locator("td:has-text('Collaboration') + td b:has-text('G')").count() === 1, "report shows learning skills");
+  await shot(F.page, "50-report-card");
+  await S.page.goto(`${BASE}/students/${jordan.id}`);
+  ok(await S.page.locator("a:has-text('My report card')").count() === 1, "student sees My report card");
+  await F.page.goto(`${BASE}/students/${jordan.id}/report/edit?term=1`);
+  ok(!F.page.url().includes("/report/edit"), "parent cannot open the report editor");
+  await C.page.goto(`${BASE}/students/${jordan.id}/report/edit?term=1`);
+  await shot(C.page, "51-report-edit");
+  await C.page.click("button:has-text('Reopen to edit')");
+  ok((await flashText(C.page, "Reopened")).includes("Reopened"), "coach reopens a released report");
+  await F.page.goto(`${BASE}/students/${jordan.id}/report?term=1`);
+  ok(await F.page.locator("text=No term 1 report card yet").count() === 1, "reopened report is hidden from the family again");
+
+  // QR sign-in cards
+  await C.page.goto(`${BASE}/coach/classes/${classId}/cards`);
+  await C.page.click("button:has-text('Make')");
+  await C.page.waitForSelector(".signcard .qr svg");
+  ok(await C.page.locator(".signcard:has-text('Jordan') .qr svg").count() === 1, "coach makes a QR sign-in card");
+  await shot(C.page, "52-cards");
+  const tok1 = (await prisma.user.findUnique({ where: { id: jordan.id } })).cardToken;
+  const K = await session("card");
+  await K.page.goto(`${BASE}/card/${tok1}`);
+  ok(K.page.url().endsWith("/student"), "scanning the card signs the student in");
+  await C.page.locator(".signcard:has-text('Jordan') button:has-text('Replace card')").click();
+  ok((await flashText(C.page, "old card")).includes("no longer works"), "coach replaces a lost card");
+  const K2 = await session("oldcard");
+  await K2.page.goto(`${BASE}/card/${tok1}`);
+  ok(K2.page.url().includes("card=old") && await K2.page.locator("text=doesn't work any more").count() === 1, "the old card no longer signs in");
+
+  // Sign in with Google / Microsoft without setup, and a forged callback
+  await K2.page.goto(`${BASE}/api/auth/google/start`);
+  ok(K2.page.url().includes("sso=not_configured"), "Google sign-in says it isn't set up yet");
+  await K2.page.goto(`${BASE}/api/auth/microsoft/callback?code=x&state=y`);
+  ok(K2.page.url().includes("sso=state"), "a sign-in callback without a started sign-in is refused");
+
+  // Account page and weekly email
+  await F.page.goto(`${BASE}/account`);
+  ok(await F.page.locator("h2:has-text('Weekly email')").count() === 1, "parent has weekly email settings");
+  const prev = await F.page.request.get(`${BASE}/account/weekly-preview`);
+  const prevHtml = await prev.text();
+  ok(prev.status() === 200 && (prevHtml.includes("Jordan") || prevHtml.includes("nothing to send")), "parent previews this week's email");
+  await F.page.click("button:has-text('Turn off weekly email')");
+  ok((await flashText(F.page, "Weekly emails are off")).includes("off"), "parent turns weekly email off");
+  await F.page.click("button:has-text('Turn on weekly email')");
+  await flashText(F.page, "every Friday");
+  await shot(F.page, "53-account");
+
+  // Admin email page: test email, weekly run, log of pilot alert and invoice emails
+  await A.page.goto(`${BASE}/admin/email`);
+  await A.page.click("button:has-text('Send me a test email')");
+  ok((await flashText(A.page, "isn't set up")).includes("RESEND_API_KEY"), "test email explains email isn't set up yet");
+  await A.page.click("button:has-text('Send this week')");
+  ok((await flashText(A.page, "Weekly email:")).includes("parents considered"), "admin can run the weekly email");
+  ok(await A.page.locator("td:has-text('Pilot request alert')").count() >= 1 && await A.page.locator("td:has-text('Invoice')").count() >= 1, "pilot alerts and invoices are logged as emails");
+  await shot(A.page, "54-admin-email");
+
+  // Forgot password: same answer for everyone; reset link works once and signs out other devices
+  const anon2 = await session("forgot");
+  await anon2.page.goto(`${BASE}/login`);
+  await anon2.page.click("a:has-text('Forgot your password?')");
+  await anon2.page.fill("#email", coach["Email"]);
+  await anon2.page.click("button:has-text('Email me a reset link')");
+  await anon2.page.waitForSelector("text=If that email has an account", { timeout: 15000 }).catch(() => {});
+  ok(await anon2.page.locator("text=If that email has an account").count() === 1, "forgot password confirms without saying whether the account exists");
+  const coachUser = await prisma.user.findUnique({ where: { email: coach["Email"].toLowerCase() } });
+  ok(await prisma.passwordReset.count({ where: { userId: coachUser.id } }) === 1 && await prisma.emailLog.count({ where: { kind: "password_reset", to: coachUser.email } }) === 1, "a reset link was made and its email logged");
+  const token = randomBytes(32).toString("base64url");
+  await prisma.passwordReset.create({ data: { userId: coachUser.id, tokenHash: createHash("sha256").update(token).digest("hex"), expiresAt: new Date(Date.now() + 3600000) } });
+  await anon2.page.goto(`${BASE}/reset/${token}`);
+  await anon2.page.fill("#password", "brand-new-pass-9"); await anon2.page.fill("#confirm", "brand-new-pass-9");
+  await anon2.page.click("button:has-text('Save and sign in')");
+  await anon2.page.waitForURL(/\/coach/);
+  ok(true, "coach resets their password from the link and is signed in");
+  await C.page.goto(`${BASE}/coach`);
+  ok(C.page.url().endsWith("/login"), "the coach's other sessions were signed out");
+  await anon2.page.goto(`${BASE}/reset/${token}`);
+  ok(await anon2.page.locator("h1:has-text('expired')").count() === 1, "a used reset link doesn't work again");
+  await adultLogin(C.page, coach["Email"], "brand-new-pass-9");
+  ok(C.page.url().endsWith("/coach"), "coach signs in with the new password");
+  await prisma.$disconnect();
+}
+
 /* 9. accessibility: axe-core (WCAG 2.1 A and AA) on the main screens for each role */
 {
   const axePath = new URL("../node_modules/axe-core/axe.min.js", import.meta.url).pathname;
@@ -599,6 +712,7 @@ await shot(pp, "15-phone-dark-student");
     [S, "/student"], [S, "/student/studio"], [S, "/student/projects"], [S, studentLinkSelf ?? "/student"],
     [C, "/coach"], [P, "/school"], [P, "/school/people"], [P, "/school/privacy"], [P, "/school/settings"], [F, "/parent"], [F, "/showcase"],
     [A, "/admin/leads"], [R, "/school/billing"], [A, "/admin"],
+    [A, "/admin/email"], [F, "/account"], [anon, "/forgot"], [C, `/coach/classes/${classUrl.split("/").pop()}/reports`], [F, "/parent"],
   ];
   const found = new Map();
   for (const [sess, path] of pages) {
