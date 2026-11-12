@@ -31,7 +31,7 @@ lang:{
 5:[["Comprehension","Figurative language","'The classroom was a zoo.' What kind of figurative language is this?","Metaphor","Simile","Onomatopoeia","Alliteration"],
    ["Comprehension","Point of view","A story uses 'I' and 'me' to tell what happened to the narrator. What point of view is it?","First person","Second person","Third person","Omniscient"],
    ["Foundations of Language","Homophones","Which sentence uses the correct word?","They're going to the library.","Their going to the library.","There going to the library.","Theyre going to the library."]],
-6:[["Comprehension","Theme","A story shows a girl who keeps practising after many failures and finally succeeds. What is the most likely theme?","Persistence leads to success","Practice is boring","Winning is everything","Failure is permanent"],
+6:[["Comprehension","Theme","A story shows a girl who keeps practicing after many failures and finally succeeds. What is the most likely theme?","Persistence leads to success","Practice is boring","Winning is everything","Failure is permanent"],
    ["Composition","Persuasive writing","Which sentence is the strongest opening for a persuasive letter about adding a school garden?","Our school should build a garden because it would teach us where food comes from.","Gardens have dirt in them.","I went to a garden once.","Some people like gardens and some don't."],
    ["Foundations of Language","Complex sentences","Which is a complex sentence?","Because it rained, the game was cancelled.","It rained.","It rained, and the game was cancelled.","The game. Cancelled."]],
 7:[["Comprehension","Making inferences","'Jordan slammed his locker, ignored his friends, and stared at the floor during lunch.' What can you infer?","Jordan is upset about something","Jordan is excited","Jordan is hungry","Jordan just won a prize"],
@@ -383,7 +383,7 @@ gce:{
 
 export const METHODS: Record<SubjectId, Record<Mode, string>> = {
  lang:{repair:"Read a short text that feels easy. Look at 3 examples of {s} together, try 5 on your own, then explain one answer out loud.",
-       practice:"Read a grade-level text and practise {s}. Write 3–5 sentences that show it, then compare them with a strong example.",
+       practice:"Read a grade-level text and practice {s}. Write 3–5 sentences that show it, then compare them with a strong example.",
        stretch:"Read something harder than usual (a novel chapter, news article or poem). Use {s} in a short written response and share it."},
  math:{repair:"Study 2 worked examples of {s}, using drawings or objects if they help. Solve 6 practice questions, check them and redo any you missed.",
        practice:"Do 8 mixed questions on {s}. Mark them, then explain how you solved the hardest one.",
@@ -401,7 +401,7 @@ export const METHODS: Record<SubjectId, Record<Mode, string>> = {
        practice:"Create a short piece that uses {s}. Describe your choices using arts vocabulary.",
        stretch:"Plan and create a project built on {s}. Present it, then reflect using the critical analysis process."},
  hpe:{repair:"Learn about {s} from a short reading or video. Do 10 minutes of activity and name one healthy choice for today.",
-       practice:"Practise {s}, do 15 minutes of active movement, and set one personal health goal for the week.",
+       practice:"Practice {s}, do 15 minutes of active movement, and set one personal health goal for the week.",
        stretch:"Lead a family member or friend through an activity built around {s}, then record how it went."},
  tech:{repair:"Review {s} with a short tutorial. Complete 3 small practice tasks and note what was tricky.",
        practice:"Build a small program, sketch or prototype that uses {s}. Test it and fix one problem.",

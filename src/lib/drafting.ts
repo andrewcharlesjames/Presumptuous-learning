@@ -29,6 +29,7 @@ Each question must:
 - use Canadian spelling and Canadian or Ontario contexts where natural (metric units, dollars);
 - be self-contained (no images or diagrams), short, and readable for the grade;
 - include a one- or two-sentence explanation a student sees after answering.
+Always spell practice with a c in every form (practice, practiced, practicing), including as a verb.
 Never repeat or closely paraphrase an existing question you are shown. Spread the new questions across different skills.`;
 
 export async function draftQuestions(subject: SubjectId, grade: number, count = 5): Promise<{ created: number; error?: string }> {

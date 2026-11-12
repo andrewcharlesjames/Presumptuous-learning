@@ -216,9 +216,9 @@ await shot(S.page, "11-student-today-after");
   await prisma.$disconnect();
 }
 // practice set
-const practiseButtons = S.page.locator("button:has-text('Practise now')");
-ok(await practiseButtons.count() > 0, "Today plan has Practise now buttons");
-await practiseButtons.first().click();
+const practiceButtons = S.page.locator("button:has-text('Practice now')");
+ok(await practiceButtons.count() > 0, "Today plan has Practice now buttons");
+await practiceButtons.first().click();
 await S.page.waitForURL(/\/student\/practice\//);
 for (let i = 0; i < 5; i++) {
   await S.page.locator(".opt").first().click();
@@ -277,7 +277,7 @@ ok(await C.page.locator("h2:has-text('Assignments')").count() === 1 && await C.p
 await shot(C.page, "23-coach-assignments");
 await S.page.goto(`${BASE}/student`);
 ok(await S.page.locator("h2:has-text('From your coach')").count() === 1 && await S.page.locator("text=Do this before Friday").count() === 1, "student sees the assignment on Today");
-await S.page.locator("section:has(h2:has-text('From your coach')) button:has-text('Practise now')").first().click();
+await S.page.locator("section:has(h2:has-text('From your coach')) button:has-text('Practice now')").first().click();
 await S.page.waitForURL(/\/student\/practice\//);
 for (let i = 0; i < 5; i++) {
   await S.page.locator(".opt").first().click();

@@ -27,6 +27,7 @@ Rules:
 - Show a short worked step for math, or one concrete example for other subjects.
 - Be warm and encouraging without praise filler. Do not ask the student questions or for any personal information.
 - Refer to answers by what they say, never by letter: the student saw them in a different order.
+- Always spell practice with a c in every form (practice, practiced, practicing), including as a verb.
 - Only discuss this question. Plain text only: no headings, lists or markdown.`;
 
 export type TutorResult = { ok: true; text: string } | { ok: false; reason: "off" | "limit" | "error" };

@@ -22,7 +22,7 @@ export function AssignForm({ students, menu, subjects, returnTo, defaultGrade }:
       <div className="form-grid">
         <label className="field">What<select id="as-kind" name="kind" value={kind} onChange={e => setKind(e.target.value)}>
           <option value="MASTER_SKILL">Learn and master a skill</option>
-          <option value="PRACTICE">Practise a skill</option>
+          <option value="PRACTICE">Practice a skill</option>
           <option value="ASSESSMENT">Retake the assessment</option>
         </select></label>
         {kind !== "ASSESSMENT" && <>

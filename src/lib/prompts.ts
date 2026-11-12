@@ -63,7 +63,7 @@ const LIFE: Record<Band, string[][]> = {
   older: [
     ["Track everything you spend money on today. What surprised you?", "Compare the unit price of two sizes of the same product. Which is the better deal?", "Make a simple monthly budget for a part-time job paying $300 a month."],
     ["Pick a problem people your age have. Write a one-sentence business idea that solves it.", "Who would buy your idea? Describe your customer in 3 sentences.", "Write a 30-second pitch for your idea and say it out loud."],
-    ["Describe a leader you admire. What do they do that you could practise?", "Run a 5-minute group discussion and make sure every person speaks.", "Give someone specific, kind feedback on their work."],
+    ["Describe a leader you admire. What do they do that you could practice?", "Run a 5-minute group discussion and make sure every person speaks.", "Give someone specific, kind feedback on their work."],
     ["Set one SMART goal for this week. Make it specific and measurable.", "Plan tomorrow in 15-minute blocks. Where does your time go?", "Write about a setback and what you'd do differently next time."],
     ["Spend this block on your Life Skills or Purpose project. Write down your next step.", "Contact one person who could help with your project.", "Write a progress update: done, doing, next."],
   ],

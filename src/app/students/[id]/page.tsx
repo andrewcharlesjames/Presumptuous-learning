@@ -282,7 +282,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
               <span key={sid} className="chip">{isSubjectId(sid) ? SUBJECT_BY_ID[sid].name(grade) : sid}: {v.correct}/{v.questions}</span>
             ))}</div>
           </>
-        ) : <p className="muted small">{self ? "No practice yet this week. Use the Practise now buttons on your Today screen." : "No practice sets completed this week."}</p>}
+        ) : <p className="muted small">{self ? "No practice yet this week. Use the Practice now buttons on your Today screen." : "No practice sets completed this week."}</p>}
         {recentSets.length > 0 && (
           <div className="stack" style={{ gap: 4 }}>{recentSets.map(r => (
             <p key={r.id} className="small muted num">{fmtStamp(r.completedAt!, school.timezone, { weekday: "short", month: "short", day: "numeric" })} · {isSubjectId(r.subject) ? SUBJECT_BY_ID[r.subject].name(grade) : r.subject}{r.skill ? ` · ${r.skill}` : ""} · {gradeName(r.grade)} · {r.correct}/{r.total}</p>

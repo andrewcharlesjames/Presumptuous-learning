@@ -85,7 +85,7 @@ export default async function StudentToday() {
               <Link className="btn small primary" href={learnHref(b.sid, b.grade ?? grade, b.skill)}>Learn it</Link>
               <form action={startPractice}>
                 <input type="hidden" name="subject" value={b.sid} /><input type="hidden" name="skill" value={b.skill} /><input type="hidden" name="grade" value={b.grade ?? grade} />
-                <button className="btn small">Practise now</button>
+                <button className="btn small">Practice now</button>
               </form>
             </div>
           ) : <p className="small muted">{b.how.before}{b.how.skill && <b>{b.how.skill}</b>}{b.how.after}</p>}
@@ -138,7 +138,7 @@ export default async function StudentToday() {
                   ) : a.kind === "MASTER_SKILL" ? (
                     <Link className="btn small primary" href={learnHref(a.subject, a.grade, a.skill)}>Learn it</Link>
                   ) : (
-                    <form action={startPractice}><input type="hidden" name="subject" value={a.subject} /><input type="hidden" name="skill" value={a.skill} /><input type="hidden" name="grade" value={a.grade} /><button className="btn small primary">Practise now</button></form>
+                    <form action={startPractice}><input type="hidden" name="subject" value={a.subject} /><input type="hidden" name="skill" value={a.skill} /><input type="hidden" name="grade" value={a.grade} /><button className="btn small primary">Practice now</button></form>
                   )}
                 </div>
               </div>
@@ -159,7 +159,7 @@ export default async function StudentToday() {
           <WeekStrip days={weekStatus.get(user.id) ?? []} today={isoDate(info.date)} since={isoDate(todayIn(school.timezone, user.createdAt))} />
         </section>
       ) : (
-        <div className="flash ok"><span>No school today ({info.reason}). You can still learn and practise below.</span></div>
+        <div className="flash ok"><span>No school today ({info.reason}). You can still learn and practice below.</span></div>
       )}
 
       {info.schoolDay && !kinds.has("ASSEMBLY") && <section className="card"><h2>Morning check-in</h2><CheckIn log={log} mindful={mindful} /></section>}

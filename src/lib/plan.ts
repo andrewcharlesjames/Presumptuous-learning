@@ -137,7 +137,7 @@ export function buildPlan({ grade: g, results: rs, today, yearEnd, extraMileston
   const mon = mondayOf(today);
   const themes = [
     { title: "Close the gaps", detail: "Repair the skills missed on the assessment. Keep every session short and specific." },
-    { title: "Secure grade level", detail: `Practise every ${gradeName(g)} expectation until it's easy. Mix in review from week 1.` },
+    { title: "Secure grade level", detail: `Practice every ${gradeName(g)} expectation until it's easy. Mix in review from week 1.` },
     { title: "Reach ahead", detail: `Start ${next} skills in every subject. Treat mistakes as part of the work.` },
     { title: "Check and raise the bar", detail: "Review weeks 1–3 early in the week, then retake the assessment on Friday and compare." },
   ];

@@ -5,7 +5,7 @@ import { SUBJECT_BY_ID, gradeName, isSubjectId } from "./subjects";
 
 export type AssignmentWithTargets = Assignment & { targets: AssignmentTarget[] };
 
-export const KIND_LABEL = { MASTER_SKILL: "Learn and master", PRACTICE: "Practise", ASSESSMENT: "Retake the assessment" } as const;
+export const KIND_LABEL = { MASTER_SKILL: "Learn and master", PRACTICE: "Practice", ASSESSMENT: "Retake the assessment" } as const;
 
 export function describe(a: Pick<Assignment, "kind" | "subject" | "grade" | "skill">): string {
   if (a.kind === "ASSESSMENT") return "Retake the placement assessment";

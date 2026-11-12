@@ -43,10 +43,10 @@ export default async function LearnPage({ searchParams }: { searchParams: Promis
       {mastered ? (
         <div className="card">
           <h2>You&apos;ve mastered this skill.</h2>
-          <p className="muted">You scored {progress!.lastScore} of {progress!.lastTotal} on your check. It&apos;s off your plan now. Practise now and then to keep it sharp.</p>
+          <p className="muted">You scored {progress!.lastScore} of {progress!.lastTotal} on your check. It&apos;s off your plan now. Practice now and then to keep it sharp.</p>
           <div className="row">
             <Link className="btn primary" href="/student">Back to Today</Link>
-            <form action={startPractice}><input type="hidden" name="subject" value={subject} /><input type="hidden" name="skill" value={skill} /><input type="hidden" name="grade" value={grade} /><button className="btn">Practise anyway</button></form>
+            <form action={startPractice}><input type="hidden" name="subject" value={subject} /><input type="hidden" name="skill" value={skill} /><input type="hidden" name="grade" value={grade} /><button className="btn">Practice anyway</button></form>
           </div>
         </div>
       ) : (
@@ -73,8 +73,8 @@ export default async function LearnPage({ searchParams }: { searchParams: Promis
           ) : (
             <div className="card">
               <h2>Lessons aren&apos;t switched on yet</h2>
-              <p className="muted">The platform needs to be connected to its AI service before it can write lessons. You can still practise this skill, or ask your coach to teach it.</p>
-              <form action={startPractice}><input type="hidden" name="subject" value={subject} /><input type="hidden" name="skill" value={skill} /><input type="hidden" name="grade" value={grade} /><button className="btn primary">Practise this skill</button></form>
+              <p className="muted">The platform needs to be connected to its AI service before it can write lessons. You can still practice this skill, or ask your coach to teach it.</p>
+              <form action={startPractice}><input type="hidden" name="subject" value={subject} /><input type="hidden" name="skill" value={skill} /><input type="hidden" name="grade" value={grade} /><button className="btn primary">Practice this skill</button></form>
             </div>
           )}
         </>

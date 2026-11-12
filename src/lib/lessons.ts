@@ -40,6 +40,7 @@ Write for the student, in second person, with Canadian spelling, metric units an
 - commonMistake: one mistake students often make with this skill and how to avoid it.
 - tryIt: one multiple-choice question with 1 correct and exactly 3 wrong answers, plus a one-sentence explanation.
 - checkQuestions: exactly 5 new multiple-choice questions on this same skill, at this grade, each with 1 correct answer, exactly 3 wrong answers based on real misconceptions, and a one-sentence explanation. Vary them; do not reuse the examples or the tryIt question.
+Always spell practice with a c in every form (practice, practiced, practicing), including as a verb.
 Everything must be accurate and match the Ontario curriculum for the grade. No images, diagrams, links or markdown. Questions must be self-contained text.`;
 
 const VARIANT_NOTE: Record<number, string> = {

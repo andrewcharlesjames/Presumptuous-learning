@@ -55,7 +55,7 @@ export default async function PracticePage({ params }: { params: Promise<{ id: s
       ) : start < 0 ? (
         <div className="card" style={{ maxWidth: 720 }}>
           <h2>Set complete: {s.correct} of {s.total}</h2>
-          <p className="muted">{s.correct === s.total ? "Every one right. Time to stretch further." : s.correct >= s.total * 0.6 ? "Solid work. One more set will lock it in." : "Good effort. Mistakes show what to practise next. Try another set."}</p>
+          <p className="muted">{s.correct === s.total ? "Every one right. Time to stretch further." : s.correct >= s.total * 0.6 ? "Solid work. One more set will lock it in." : "Good effort. Mistakes show what to practice next. Try another set."}</p>
           <div className="row">
             <form action={startPractice}>
               <input type="hidden" name="subject" value={s.subject} /><input type="hidden" name="skill" value={s.skill} />
