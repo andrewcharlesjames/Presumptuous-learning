@@ -14,7 +14,7 @@ async function session(name) {
   const ctx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
   const page = await ctx.newPage();
   page.on("pageerror", e => problems.push(`[${name}] page error: ${e.message}`));
-  page.on("console", m => { if (m.type() === "error" && !m.text().includes("404 (Not Found)")) problems.push(`[${name}] console: ${m.text()}`); });
+  page.on("console", m => { if (m.type() === "error" && !m.text().includes("404 (Not Found)") && !m.text().includes("400 (Bad Request)")) problems.push(`[${name}] console: ${m.text()}`); });
   page.on("response", r => { if (r.status() >= 500) problems.push(`[${name}] ${r.status()} ${r.url()}`); });
   return { ctx, page };
 }
@@ -302,6 +302,46 @@ if (await assignBtns.count() > 0) {
 }
 await shot(C.page, "24-student-profile-coach");
 
+/* 5d. studio and portfolio */
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+await S.page.goto(`${BASE}/student/studio`);
+ok(await S.page.locator("text=Today's creative prompt").count() === 1, "studio shows today's prompt");
+await S.page.fill("#art-title", "Texture rubbings");
+await S.page.setInputFiles("#art-file", { name: "rubbing.png", mimeType: "image/png", buffer: PNG });
+await S.page.fill("#art-reflection", "I tried three different textures.");
+await S.page.click("button:has-text('Hand it in')");
+await S.page.waitForSelector("article:has-text('Texture rubbings') img", { timeout: 15000 });
+ok(true, "student hands in a photo and it shows in recent work");
+await S.page.selectOption("#art-discipline", "WRITING");
+await S.page.fill("#art-title", "Snow poem");
+await S.page.fill("#art-text", "Snow falls soft\non the quiet street.");
+await S.page.click("button:has-text('Hand it in')");
+await S.page.waitForSelector("article:has-text('Snow poem') blockquote", { timeout: 15000 });
+ok(true, "student hands in a written piece");
+await S.page.fill("#art-title", "Fake image");
+await S.page.setInputFiles("#art-file", { name: "fake.png", mimeType: "image/png", buffer: Buffer.from("not really a picture") });
+await S.page.click("button:has-text('Hand it in')");
+{ const t = await S.page.waitForSelector("p[role=alert]", { timeout: 15000 }).then(e => e.innerText()); ok(t.includes("look like"), `a renamed non-image file is refused (${t})`); }
+await S.page.locator("article:has-text('Snow poem') button:has-text('Star as best work')").click();
+await S.page.waitForSelector("article:has-text('★ Snow poem')", { timeout: 15000 }).catch(() => {});
+ok(await S.page.locator("text=★ Snow poem").count() === 1, "student stars a piece");
+const imgSrc = await S.page.locator("article:has-text('Texture rubbings') img").getAttribute("src");
+ok((await S.page.request.get(`${BASE}${imgSrc}`)).status() === 200, "the student can open their own file");
+await shot(S.page, "25-studio");
+await S.page.goto(`${BASE}/student`);
+ok(await S.page.locator("text=Open the studio").count() === 1, "handing in work ticks off Arts on Today");
+await C.page.goto(`${BASE}/coach`);
+await C.page.locator("a.card").first().click();
+await C.page.click("a:has-text('Class studio')");
+await C.page.waitForURL(/\/studio/);
+await C.page.locator("article:has-text('Snow poem') input[name=body]").fill("Lovely sound words. Try a third line with a colour.");
+await C.page.locator("article:has-text('Snow poem') button:has-text('Save feedback')").click();
+ok((await flashText(C.page, "Feedback saved")).includes("Feedback saved"), "coach gives feedback in the class studio");
+await shot(C.page, "26-class-studio");
+const otherCoach = await session("othercoach");
+await adultLogin(otherCoach.page, demo["Coach"].split(" / ")[0], demo["Coach"].split(" / ")[1]);
+ok((await otherCoach.page.request.get(`${BASE}${imgSrc}`)).status() === 404, "a coach at another school can't open the file");
+
 /* 6. parent joins with the family code */
 const F = await session("parent");
 await F.page.goto(`${BASE}/join`);
@@ -314,6 +354,11 @@ ok((await F.page.locator("h2").first().innerText()).includes("Jordan"), "parent 
 if (schoolDay) ok(await F.page.locator("text=Checked in feeling").count() === 1 && await F.page.locator("text=How to check my work").count() === 1, "parent sees today's check-in and reflection");
 await shot(F.page, "22-parent-day");
 ok(await F.page.locator("text=Great effort this week").count() === 1, "parent sees the coach's shared note");
+await F.page.click("a:has-text('Portfolio (2)')");
+await F.page.waitForURL(/\/portfolio/);
+ok(await F.page.locator("text=★ Snow poem").count() === 1 && await F.page.locator("text=Lovely sound words").count() === 1, "parent sees the portfolio, starred work first, with coach feedback");
+await shot(F.page, "27-parent-portfolio");
+await F.page.goBack();
 await shot(F.page, "12-parent");
 await F.page.click("a:has-text('See plan')");
 await F.page.waitForURL(/\/students\//);

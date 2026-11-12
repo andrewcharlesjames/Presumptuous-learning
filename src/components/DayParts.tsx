@@ -53,13 +53,16 @@ export function Reflect({ log }: { log: DailyLog | null }) {
   );
 }
 
-export function PromptTask({ kind, label, prompt, done }: { kind: "arts" | "life"; label?: string; prompt: string; done: boolean }) {
+export function PromptTask({ kind, label, prompt, done, studioHref }: { kind: "arts" | "life"; label?: string; prompt: string; done: boolean; studioHref?: string }) {
   return (
     <div className="stack" style={{ gap: 6, marginTop: 4 }}>
       <p className="small">{label && <b>{label}: </b>}{prompt}</p>
-      {done ? <span className="small"><span className="pill above">Done</span></span> : (
-        <form action={markPromptDone}><input type="hidden" name="kind" value={kind} /><button className="btn small">Mark done</button></form>
-      )}
+      <div className="row" style={{ gap: 8 }}>
+        {studioHref && <a className={`btn small ${done ? "" : "primary"}`} href={studioHref}>{done ? "Open the studio" : "Hand in your work"}</a>}
+        {done ? <span className="small"><span className="pill above">Done</span></span> : (
+          <form action={markPromptDone}><input type="hidden" name="kind" value={kind} /><button className="btn small">{studioHref ? "Done offline" : "Mark done"}</button></form>
+        )}
+      </div>
     </div>
   );
 }

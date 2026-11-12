@@ -16,7 +16,7 @@ export function navFor(user: CurrentUser): { href: string; label: string }[] {
     ];
     case "COACH": return [{ href: "/coach", label: "My classes" }];
     case "PARENT": return [{ href: "/parent", label: "My children" }];
-    case "STUDENT": return [{ href: "/student", label: "Today" }, { href: `/students/${user.id}`, label: "My plan" }];
+    case "STUDENT": return [{ href: "/student", label: "Today" }, { href: "/student/studio", label: "Studio" }, { href: `/students/${user.id}/portfolio`, label: "Portfolio" }, { href: `/students/${user.id}`, label: "My plan" }];
   }
 }
 

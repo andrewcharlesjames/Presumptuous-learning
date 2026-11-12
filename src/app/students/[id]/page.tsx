@@ -100,7 +100,10 @@ export default async function StudentProfile({ params, searchParams }: { params:
           <h1>{self ? "My learning plan" : `${student.firstName} ${student.lastName}`}</h1>
           {scored && <p className="muted small" style={{ marginTop: 6 }}>Last assessed {fmtStamp(scored.assessment.completedAt!, school.timezone, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} in {gradeName(scored.assessment.grade)}</p>}
         </div>
-        {self && scored && <form action={startAssessment}><input type="hidden" name="fresh" value="1" /><button className="btn">Retake the assessment</button></form>}
+        <div className="row">
+          <Link className="btn" href={`/students/${student.id}/portfolio`}>{self ? "My portfolio" : "Portfolio"}</Link>
+          {self && scored && <form action={startAssessment}><input type="hidden" name="fresh" value="1" /><button className="btn">Retake the assessment</button></form>}
+        </div>
       </div>
 
       {!scored ? (

@@ -101,7 +101,7 @@ export default async function StudentToday() {
     switch (kind) {
       case "ASSEMBLY": return <CheckIn log={log} mindful={mindful} />;
       case "ACADEMICS": return learnList;
-      case "ARTS": return <PromptTask kind="arts" label="Today's creative prompt" prompt={artsPromptFor(info.date, grade)} done={!!log?.artsDone} />;
+      case "ARTS": return <PromptTask kind="arts" label="Today's creative prompt" prompt={artsPromptFor(info.date, grade)} done={!!log?.artsDone} studioHref="/student/studio" />;
       case "LIFE_SKILLS": return <PromptTask kind="life" label={life.track} prompt={life.prompt} done={!!log?.lifeDone} />;
       case "REFLECTION": return <Reflect log={log} />;
       default: return null;

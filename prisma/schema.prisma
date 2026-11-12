@@ -100,6 +100,8 @@ model User {
   assignedWork    AssignmentTarget[] @relation("AssignmentStudent")
   notesAbout      CoachNote[]        @relation("NoteAbout")
   notesWritten    CoachNote[]        @relation("NoteAuthor")
+  artworks        Artwork[]          @relation("ArtworkStudent")
+  artFeedback     ArtFeedback[]      @relation("FeedbackAuthor")
   attendance      Attendance[]   @relation("AttendanceStudent")
   markedAttendance Attendance[]  @relation("AttendanceMarker")
 
@@ -394,4 +396,60 @@ model CoachNote {
   createdAt DateTime @default(now())
 
   @@index([studentId, createdAt])
+}
+
+// ---------------- Phase 5: studio and portfolio ----------------
+
+enum Discipline {
+  VISUAL_ARTS
+  MUSIC
+  DRAMA
+  DANCE
+  MEDIA_ARTS
+  WRITING
+}
+
+/// A piece of student work in their portfolio.
+model Artwork {
+  id         String        @id @default(cuid())
+  schoolId   String
+  studentId  String
+  student    User          @relation("ArtworkStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  discipline Discipline
+  title      String
+  reflection String        @default("") // what I tried / what I'd change
+  prompt     String        @default("") // the prompt it answered, if any
+  textBody   String        @default("") // a poem, script or story
+  fileId     String?       @unique
+  file       ArtFile?      @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  featured   Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  feedback   ArtFeedback[]
+
+  @@index([studentId, createdAt])
+  @@index([schoolId, createdAt])
+}
+
+/// Uploaded media for an artwork, stored in the database (pilot scale; move to object storage later).
+model ArtFile {
+  id        String   @id @default(cuid())
+  schoolId  String
+  studentId String
+  mime      String
+  size      Int
+  data      Bytes
+  createdAt DateTime @default(now())
+  artwork   Artwork?
+}
+
+model ArtFeedback {
+  id        String   @id @default(cuid())
+  artworkId String
+  artwork   Artwork  @relation(fields: [artworkId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("FeedbackAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([artworkId])
 }

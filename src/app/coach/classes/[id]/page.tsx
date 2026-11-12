@@ -67,6 +67,7 @@ export default async function ClassView({ params, searchParams }: { params: Prom
         <div>
           <Link href={user.role === "COACH" ? "/coach" : "/school/classes"} className="small">← {user.role === "COACH" ? "My classes" : "Classes"}</Link>
           <h1>{cls.name}</h1>
+          <p className="small" style={{ margin: "4px 0" }}><Link href={`/coach/classes/${cls.id}/studio`}>Class studio: students&apos; work and your feedback →</Link></p>
           <p className="muted small">{plural(school.coachTitle)}: {cls.coaches.map(c => `${c.coach.firstName} ${c.coach.lastName}`).join(", ") || "none"} · Students sign in with school code <b className="num">{school.code}</b></p>
         </div>
       </div>

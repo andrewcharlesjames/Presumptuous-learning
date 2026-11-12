@@ -40,6 +40,7 @@ export default async function ParentHome() {
     db.coachNote.findMany({ where: { studentId: { in: ids }, shared: true }, include: { author: true }, orderBy: { createdAt: "desc" }, take: 20 }),
   ]);
   const doneA = await completion(kidAssignments);
+  const artCounts = new Map((await db.artwork.groupBy({ by: ["studentId"], where: { studentId: { in: ids } }, _count: true })).map(c => [c.studentId, c._count]));
   return (
     <Shell user={user}>
       <div><span className="eyebrow">{school.name}</span><h1>My children</h1></div>
@@ -54,7 +55,10 @@ export default async function ParentHome() {
             <div key={k.id} className="card">
               <div className="spread">
                 <div><h2>{k.firstName} {k.lastName}</h2><span className="small muted">{gradeName(k.grade ?? 0)}</span></div>
-                <Link className="btn small primary" href={`/students/${k.id}`}>See plan</Link>
+                <div className="row" style={{ gap: 6 }}>
+                  <Link className="btn small" href={`/students/${k.id}/portfolio`}>Portfolio ({artCounts.get(k.id) ?? 0})</Link>
+                  <Link className="btn small primary" href={`/students/${k.id}`}>See plan</Link>
+                </div>
               </div>
               {l && c ? (
                 <>
