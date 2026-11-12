@@ -52,7 +52,7 @@ export function Ruler({ status, grade, working }: { status: Status; grade: numbe
 export function SplitBar({ below, at, above }: { below: number; at: number; above: number }) {
   const t = below + at + above || 1;
   return (
-    <span className="bar" aria-label={`${below} below, ${at} at, ${above} above`}>
+    <span className="bar" role="img" aria-label={`${below} below, ${at} at, ${above} above grade level`}>
       <i className="b" style={{ width: `${(below / t) * 100}%` }} />
       <i className="a" style={{ width: `${(at / t) * 100}%` }} />
       <i className="v" style={{ width: `${(above / t) * 100}%` }} />

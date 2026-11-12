@@ -41,7 +41,7 @@ export function Quiz({ id, studentId, initial, readAloud }: { id: string; studen
     <section className="quiz">
       <div className="stack" style={{ gap: 8 }}>
         <div className="spread small muted num"><span>Subject {view.subjectNumber} of {view.subjectCount}</span><span>Question {view.inSubject} in this subject</span></div>
-        <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={view.subjectCount} aria-valuenow={view.subjectNumber - 1}><i style={{ width: `${pct}%` }} /></div>
+        <div className="progress" role="progressbar" aria-label="Assessment progress" aria-valuemin={0} aria-valuemax={view.subjectCount} aria-valuenow={view.subjectNumber - 1}><i style={{ width: `${pct}%` }} /></div>
       </div>
       <div className="card" style={{ gap: 18, padding: 26 }}>
         <div className="row"><h2 style={{ fontSize: "1.1rem" }}>{q.subject}</h2><span className="chip">{q.strand}</span></div>

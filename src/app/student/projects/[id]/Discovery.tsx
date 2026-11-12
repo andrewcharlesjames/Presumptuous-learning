@@ -19,7 +19,7 @@ export function Discovery({ id, questions, answers, aiOn }: { id: string; questi
       {state?.error && <p className="flash error" role="alert">{state.error}</p>}
       {aiOn ? (
         <div className="row"><button className="btn primary" disabled={pending}>{pending ? "Finding ideas that fit you… (about 30 seconds)" : "Show me ideas"}</button></div>
-      ) : <p className="small muted">Idea suggestions need the platform&apos;s AI service. You can still write your own idea below.</p>}
+      ) : <p className="small muted">Idea suggestions are off for you right now (they need the AI service and, at your school, a parent&apos;s permission). You can still write your own idea below.</p>}
     </form>
   );
 }

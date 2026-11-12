@@ -9,6 +9,7 @@ import { SUBJECT_BY_ID, gradeName, isSubjectId } from "@/lib/subjects";
 import { Practice } from "./Practice";
 import { startPractice } from "../actions";
 import { tutorConfigured } from "@/lib/tutor";
+import { aiAllowedFor } from "@/lib/consent";
 import { MASTERY_PASS, MASTERY_SET } from "@/lib/lessons";
 import { learnHref } from "@/lib/links";
 
@@ -65,7 +66,7 @@ export default async function PracticePage({ params }: { params: Promise<{ id: s
             <Link className="btn" href="/student">Back to Today</Link>
           </div>
         </div>
-      ) : <Practice id={s.id} items={items} start={start} subject={s.subject} skill={s.skill} grade={s.grade} tutor={!!user.school?.aiTutor && tutorConfigured()} />}
+      ) : <Practice id={s.id} items={items} start={start} subject={s.subject} skill={s.skill} grade={s.grade} tutor={!!user.school?.aiTutor && tutorConfigured() && await aiAllowedFor(user.id, user.school)} />}
     </Shell>
   );
 }

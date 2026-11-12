@@ -61,7 +61,7 @@ const joinSchema = z.object({
 
 /** Parent creates an account with a family code from the school. */
 export async function joinAsParent(_: FormState, form: FormData): Promise<FormState> {
-  const parsed = joinSchema.safeParse(Object.fromEntries(form));
+  const parsed = joinSchema.safeParse({ firstName: form.get("firstName"), lastName: form.get("lastName"), email: form.get("email"), password: form.get("password"), code: form.get("code") });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   const d = parsed.data;
   const key = await clientKey(`join:${d.email}`);
@@ -81,6 +81,10 @@ export async function joinAsParent(_: FormState, form: FormData): Promise<FormSt
       children: { create: { studentId: student.id } },
     },
   });
+  const byName = `${d.firstName} ${d.lastName}`;
+  for (const [kind, on] of [["PLATFORM", form.get("consentPlatform") === "on"], ["AI", form.get("consentAi") === "on"]] as const) {
+    if (on) await db.consent.upsert({ where: { studentId_kind: { studentId: student.id, kind } }, create: { studentId: student.id, kind, granted: true, givenBy: parent.id, byName }, update: { granted: true, givenBy: parent.id, byName } });
+  }
   await createSession(parent.id);
   await setFlash({ tone: "ok", text: `Welcome. You're now connected to ${student.firstName}.` });
   redirect("/parent");

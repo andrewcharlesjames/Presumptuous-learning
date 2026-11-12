@@ -24,6 +24,8 @@ export default async function SettingsPage() {
           <input id="launchDay" name="launchDay" type="date" defaultValue={isoDate(school.launchDay ?? defaultLaunchDay(schoolYearOf(school.yearStart)))} /></label>
         <label className="check"><input type="checkbox" name="aiTutor" id="aiTutor" defaultChecked={school.aiTutor} />Turn on the AI tutor for students</label>
         <p className="small muted" style={{ marginTop: -6 }}>After a wrong practice answer, students can ask for a short explanation written by AI (Claude, by Anthropic). Only the question, its answer choices, the student&apos;s choice and grade are sent; never names or other personal information. Up to {DAILY_LIMIT} explanations per student per day.{!tutorConfigured() && " The platform hasn't been connected to the AI service yet, so this has no effect until it is."}</p>
+        <label className="check"><input type="checkbox" name="aiNeedsConsent" id="aiNeedsConsent" defaultChecked={school.aiNeedsConsent} />Require a parent&apos;s consent before a student uses AI features</label>
+        <p className="small muted" style={{ marginTop: -6 }}>Covers the AI tutor and project idea suggestions, which send a student&apos;s answers or writing to the AI service. Lessons are written once per skill from no student information and aren&apos;t affected. Parents give consent on their dashboard; you can record paper consent on a student&apos;s page.</p>
         <p className="small muted">School code for student sign-in: <b className="num">{school.code}</b></p>
         <div><button className="btn primary">Save settings</button></div>
       </form>

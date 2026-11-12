@@ -14,6 +14,9 @@ import { WeekStrip } from "@/components/DayParts";
 import { completion } from "@/lib/assignments";
 import { gradeName, SUBJECT_BY_ID } from "@/lib/subjects";
 import { linkChild } from "./actions";
+import { consentFor } from "@/lib/consent";
+import { ConsentControls } from "@/components/ConsentControls";
+import { requestDeletion } from "@/app/privacy-actions/actions";
 
 export const metadata = { title: "My children" };
 
@@ -42,6 +45,8 @@ export default async function ParentHome() {
   ]);
   const doneA = await completion(kidAssignments);
   const kidProjects = await db.project.findMany({ where: { studentId: { in: ids }, schoolYear: schoolYearOf(info.date) }, include: { milestones: { orderBy: { position: "asc" } } } });
+  const consents = await consentFor(ids);
+  const openDeletion = new Set((await db.deletionRequest.findMany({ where: { studentId: { in: ids }, resolvedAt: null }, select: { studentId: true } })).map(r => r.studentId));
   const artCounts = new Map((await db.artwork.groupBy({ by: ["studentId"], where: { studentId: { in: ids } }, _count: true })).map(c => [c.studentId, c._count]));
   return (
     <Shell user={user}>
@@ -98,6 +103,20 @@ export default async function ParentHome() {
                 return <p key={p.id} className="small"><b>{PROJECT_LABEL[p.type]}:</b> <Link href={`/students/${k.id}/projects`}>{p.title || "choosing an idea"}</Link> · {done} of {p.milestones.length} steps</p>;
               })}
               <p className="small"><b>{streakMap.get(k.id)?.current ?? 0}</b>-day streak</p>
+              <details className="items">
+                <summary>Privacy, consent and data</summary>
+                <div className="stack" style={{ gap: 12, marginTop: 10 }}>
+                  <ConsentControls studentId={k.id} state={consents.get(k.id)!} returnTo="/parent" />
+                  <p className="small"><a href={`/api/students/${k.id}/export`}>Download all of {k.firstName}&apos;s data (JSON file)</a></p>
+                  {openDeletion.has(k.id) ? <p className="small"><span className="pill at">Deletion requested</span> The school will confirm with you.</p> : (
+                    <form action={requestDeletion} className="stack" style={{ gap: 6 }}>
+                      <input type="hidden" name="studentId" value={k.id} />
+                      <label className="field small">Ask the school to delete {k.firstName}&apos;s data<span className="hint">Optional reason</span><input id={`del-${k.id}`} name="reason" type="text" maxLength={500} /></label>
+                      <div><button className="btn small danger">Request deletion</button></div>
+                    </form>
+                  )}
+                </div>
+              </details>
               <WeekStrip days={weekStatus.get(k.id) ?? []} today={isoDate(info.date)} since={isoDate(todayIn(school.timezone, k.createdAt))} />
               <p className="small">Practice this week: {(() => { const p = practice.get(k.id); return p ? `${p.sets} set${p.sets === 1 ? "" : "s"}, ${p.questions} questions, ${Math.round((p.correct / Math.max(1, p.questions)) * 100)}% correct` : "none yet"; })()}</p>
               <p className="small">

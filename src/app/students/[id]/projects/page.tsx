@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { auditView } from "@/lib/audit";
 import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { canManageStudent, canViewStudent } from "@/lib/access";
@@ -19,6 +20,7 @@ export default async function StudentProjects({ params }: { params: Promise<{ id
   const student = await db.user.findUnique({ where: { id }, include: { school: true } });
   if (!student?.school) notFound();
   const staff = await canManageStudent(viewer, id);
+  await auditView(viewer, id, "student.projects");
   const projects = await db.project.findMany({ where: { studentId: id }, include: { milestones: { orderBy: { position: "asc" } } }, orderBy: [{ schoolYear: "desc" }, { type: "asc" }] });
   const today = todayIn(student.school.timezone);
   return (

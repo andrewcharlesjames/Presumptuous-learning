@@ -15,9 +15,9 @@ export function Mark({ size = 44 }: { size?: number }) {
 
 export function Logo({ href = "/" }: { href?: string }) {
   return (
-    <Link href={href} className="lockup" aria-label="Presumptuous Learning home">
+    <Link href={href} className="lockup">
       <Mark />
-      <span className="words" aria-hidden="true">
+      <span className="words">
         <span className="word">presumptuous</span>
         <span className="word">learning</span>
       </span>

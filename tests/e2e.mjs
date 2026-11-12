@@ -233,6 +233,7 @@ await S.page.waitForSelector("text=Set complete", { timeout: 15000 });
 ok(true, "practice set completes with a score");
 await S.page.goto(`${BASE}/student`);
 const meLink = await S.page.locator("a:has-text('My plan')").getAttribute("href");
+var studentLinkSelf = meLink;
 await S.page.goto(`${BASE}${meLink}`);
 ok(await S.page.locator("text=Practice, last 7 days").count() > 0 && await S.page.locator("text=/\\d+ sets? ·/").count() > 0, "practice shows on the student's plan page");
 
@@ -408,6 +409,36 @@ await F.page.waitForURL(/\/students\//);
 await F.page.waitForSelector("h1:has-text('Jordan')", { timeout: 15000 }).catch(() => {});
 ok((await F.page.locator("h1").innerText()).includes("Jordan"), "parent opens child's plan");
 
+/* 6b. privacy: consent, export, deletion, audit */
+await F.page.goto(`${BASE}/parent`);
+await F.page.click("summary:has-text('Privacy, consent and data')");
+ok(await F.page.locator("details[open] .pill:has-text('Given')").count() >= 1, "platform consent given at sign-up shows as Given");
+await F.page.locator("details[open] form:has(input[name=kind][value=AI]) button").click();
+ok((await flashText(F.page, "AI features")).includes("given"), "parent gives AI consent");
+const exportHref = await F.page.locator("a:has-text('Download all of')").first().getAttribute("href");
+const exp = await F.page.request.get(`${BASE}${exportHref}`);
+const expJson = await exp.json().catch(() => null);
+ok(exp.status() === 200 && expJson?.student?.firstName === "Jordan" && Array.isArray(expJson?.assessments) && expJson.consents.length >= 2, "parent downloads the child's data as JSON");
+ok((await C.page.request.get(`${BASE}${exportHref}`)).status() === 404, "a coach can't download a student's full data");
+await F.page.click("summary:has-text('Privacy, consent and data')");
+await F.page.fill("input[name=reason]", "Testing deletion requests");
+await F.page.click("button:has-text('Request deletion')");
+ok((await flashText(F.page, "Deletion request sent")).includes("Deletion request sent"), "parent requests deletion");
+await R.page.goto(`${BASE}/school/privacy`);
+ok(await R.page.locator("text=Testing deletion requests").count() >= 1 && await R.page.locator("a:has-text('Review and delete')").count() === 1, "school admin sees the deletion request");
+ok(await R.page.locator("td:has-text('Viewed student record')").count() >= 1 && await R.page.locator("td:has-text('Downloaded student data')").count() >= 1, "audit log records views and the download");
+await shot(R.page, "31-school-privacy");
+// permanently delete the imported student Riley Ng
+await R.page.goto(`${BASE}/school/people`);
+const rileyHref = await R.page.locator("a:has-text('Riley Ng')").getAttribute("href");
+await R.page.goto(`${BASE}${rileyHref}`);
+await R.page.click("summary:has-text('Permanently delete')");
+await R.page.fill("#confirm-delete", "riley ng");
+await R.page.click("button:has-text('Delete permanently')");
+ok((await flashText(R.page, "permanently deleted")).includes("Riley Ng"), "school admin permanently deletes a student");
+ok((await R.page.request.get(`${BASE}${rileyHref}`)).status() === 404, "the deleted student's page is gone");
+ok(await R.page.locator("td:has-text('Deleted student and all data')").count() === 1, "the deletion is in the audit log");
+
 /* 7. permissions */
 const demoStudentLink = await (async () => { await P.page.goto(`${BASE}/school/people`); return P.page.locator("table a").first().getAttribute("href"); })();
 for (const [who, s] of [["parent", F], ["coach (other school)", C], ["student", S]]) {
@@ -444,6 +475,25 @@ const overflow = await pp.evaluate(() => document.documentElement.scrollWidth);
 ok(overflow <= 390, `phone layout has no sideways scroll (${overflow}px)`);
 await shot(pp, "15-phone-dark-student");
 
+
+/* 9. accessibility: axe-core (WCAG 2.1 A and AA) on the main screens for each role */
+{
+  const axePath = new URL("../node_modules/axe-core/axe.min.js", import.meta.url).pathname;
+  const pages = [
+    [anon, "/"], [anon, "/login"], [anon, "/join"], [anon, "/privacy"],
+    [S, "/student"], [S, "/student/studio"], [S, "/student/projects"], [S, studentLinkSelf ?? "/student"],
+    [C, "/coach"], [P, "/school"], [P, "/school/people"], [P, "/school/privacy"], [P, "/school/settings"], [F, "/parent"], [F, "/showcase"],
+  ];
+  const found = new Map();
+  for (const [sess, path] of pages) {
+    await sess.page.goto(`${BASE}${path}`);
+    await sess.page.addScriptTag({ path: axePath });
+    const res = await sess.page.evaluate(async () => (await window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] } })).violations.map(v => ({ id: v.id, impact: v.impact, help: v.help, n: v.nodes.length, sample: v.nodes[0]?.target?.join(" ") })));
+    for (const v of res) found.set(`${v.id}`, { ...v, pages: [...(found.get(v.id)?.pages ?? []), path] });
+  }
+  for (const v of found.values()) console.log(`  a11y ${v.impact}: ${v.id} — ${v.help} (${v.sample}) on ${v.pages.slice(0, 3).join(", ")}`);
+  ok([...found.values()].every(v => v.impact !== "critical" && v.impact !== "serious"), `no serious accessibility problems on ${pages.length} screens (${found.size} issue types)`);
+}
 await browser.close();
 console.log(problems.length ? `\n${problems.length} problem(s):\n- ${problems.join("\n- ")}` : "\nAll checks passed.");
 process.exitCode = problems.length ? 1 : 0;

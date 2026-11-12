@@ -31,6 +31,7 @@ export default async function Home() {
           <div className="feature"><span className="eyebrow">Coach</span><h3>Everyone sees the same picture</h3><p>Students, parents and coaches each get their own view of where a student is and what comes next.</p></div>
         </section>
       </main>
+      <footer className="small muted" style={{ marginTop: 40, paddingTop: 16, borderTop: "1px solid var(--line)" }}><Link href="/privacy" style={{ color: "inherit" }}>Privacy notice</Link></footer>
     </div>
   );
 }

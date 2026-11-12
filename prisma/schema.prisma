@@ -63,6 +63,7 @@ model School {
   isDemo     Boolean  @default(false)
   aiTutor    Boolean  @default(false) // school has opted in to AI explanations for students
   launchDay  DateTime? @db.Date // Launch Day for student projects (May)
+  aiNeedsConsent Boolean @default(true) // AI features that send a student's own writing need a parent's AI consent first
   createdAt  DateTime @default(now())
 
   users      User[]
@@ -104,6 +105,7 @@ model User {
   artworks        Artwork[]          @relation("ArtworkStudent")
   artFeedback     ArtFeedback[]      @relation("FeedbackAuthor")
   projects        Project[]          @relation("ProjectStudent")
+  consents        Consent[]          @relation("ConsentStudent")
   attendance      Attendance[]   @relation("AttendanceStudent")
   markedAttendance Attendance[]  @relation("AttendanceMarker")
 
@@ -510,4 +512,56 @@ model ProjectMilestone {
   reviewedById String?
 
   @@index([projectId, position])
+}
+
+// ---------------- Phase 7: privacy, consent and audit ----------------
+
+/// Who did what to whose records. Kept when a student is deleted (studentId stays as a plain id).
+model AuditEvent {
+  id        String   @id @default(cuid())
+  schoolId  String?
+  actorId   String?
+  actorName String   @default("")
+  actorRole String   @default("")
+  action    String // e.g. "student.view", "student.export", "student.delete", "password.reset"
+  studentId String?
+  detail    String   @default("")
+  ip        String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@index([studentId, createdAt])
+}
+
+enum ConsentKind {
+  PLATFORM // use of the platform and storing the child's learning records
+  AI // AI features that send the child's own writing or answers to the AI service
+}
+
+/// The latest consent decision per student and kind. givenBy = parent's user id, or "school" when recorded from paper.
+model Consent {
+  id        String      @id @default(cuid())
+  studentId String
+  student   User        @relation("ConsentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  kind      ConsentKind
+  granted   Boolean
+  givenBy   String
+  byName    String
+  updatedAt DateTime    @updatedAt
+
+  @@unique([studentId, kind])
+}
+
+model DeletionRequest {
+  id          String    @id @default(cuid())
+  schoolId    String
+  studentId   String
+  requestedBy String
+  byName      String
+  reason      String    @default("")
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+  outcome     String    @default("") // "deleted" or "declined"
+
+  @@index([schoolId, resolvedAt])
 }

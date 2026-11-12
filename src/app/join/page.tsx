@@ -14,6 +14,7 @@ export default function JoinPage() {
         <JoinForm />
         <p className="small muted">Already have an account? <Link href="/login">Sign in</Link>.</p>
       </main>
+      <footer className="small muted" style={{ marginTop: 40, paddingTop: 16, borderTop: "1px solid var(--line)" }}><Link href="/privacy" style={{ color: "inherit" }}>Privacy notice</Link></footer>
     </div>
   );
 }

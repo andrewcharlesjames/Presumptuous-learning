@@ -166,7 +166,7 @@ export default async function StudentToday() {
             <h2>Today: {doneCount} of {steps.length} done</h2>
             <span className="small muted">Check in, learn and reflect to keep your streak.</span>
           </div>
-          <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount}><i style={{ width: `${(doneCount / steps.length) * 100}%` }} /></div>
+          <div className="progress" role="progressbar" aria-label="Today's progress" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount}><i style={{ width: `${(doneCount / steps.length) * 100}%` }} /></div>
           <div className="chips">{steps.map(s => <span key={s.label} className={`chip ${s.done ? "above" : ""}`}>{s.done ? "✓ " : ""}{s.label}</span>)}</div>
           <WeekStrip days={weekStatus.get(user.id) ?? []} today={isoDate(info.date)} since={isoDate(todayIn(school.timezone, user.createdAt))} />
         </section>

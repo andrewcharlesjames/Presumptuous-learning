@@ -12,6 +12,7 @@ import { uniqueFamilyCode, uniqueUsername } from "@/lib/records";
 import { parseIsoDate, schoolYearOf } from "@/lib/dates";
 import { DEFAULT_DAY, ontarioYear, type BlockKindName, type CalendarKindName } from "@/lib/templates";
 import { parseCsv } from "@/lib/csv";
+import { audit } from "@/lib/audit";
 
 const admin = () => requireSchoolUser(["SCHOOL_ADMIN"]);
 const back = async (path: string, tone: "ok" | "error", text: string, secret?: { label: string; value: string }[]) => {
@@ -46,6 +47,7 @@ export async function addStudent(form: FormData) {
       ...(cls ? { studentIn: { create: { classId: cls.id } } } : {}),
     },
   });
+  await audit((await admin()).user, "student.add", { studentId: student.id, detail: `${d.firstName} ${d.lastName}` });
   return back("/school/people", "ok", `Added ${d.firstName} ${d.lastName}.`, [
     { label: "School code", value: school.code }, { label: "Username", value: username }, { label: "Password", value: password },
     { label: "Family code for parents", value: student.familyCode! },
@@ -83,6 +85,7 @@ export async function importStudents(form: FormData) {
     });
     added++;
   }
+  if (added) await audit((await admin()).user, "student.import", { detail: `${added} students` });
   return back("/school/people", added ? "ok" : "error",
     `Imported ${added} student${added === 1 ? "" : "s"}.${problems.length ? ` Skipped ${problems.join(", ")} (check name and grade).` : ""}${added ? " Everyone imported shares the starting password below; reset any student's password from their row." : ""}`,
     added ? [{ label: "School code", value: school.code }, { label: "Starting password", value: password }] : undefined);
@@ -104,6 +107,7 @@ export async function addStaff(form: FormData) {
   const password = tempPassword();
   await db.user.create({ data: { role: d.role, schoolId: school.id, email: d.email.toLowerCase(), firstName: d.firstName, lastName: d.lastName, passwordHash: await hashPassword(password) } });
   const title = d.role === "COACH" ? school.coachTitle.toLowerCase() : "school admin";
+  await audit((await admin()).user, "staff.add", { detail: `${d.firstName} ${d.lastName} (${d.role === "COACH" ? school.coachTitle : "School admin"}, ${d.email.toLowerCase()})` });
   return back("/school/people", "ok", `Added ${d.firstName} as a ${title}. Send them these sign-in details; they can change the password after signing in.`, [
     { label: "Email", value: d.email.toLowerCase() }, { label: "Temporary password", value: password },
   ]);
@@ -121,6 +125,7 @@ export async function resetPassword(form: FormData) {
   const password = target.role === "STUDENT" ? kidPassword() : tempPassword();
   await db.user.update({ where: { id }, data: { passwordHash: await hashPassword(password) } });
   await db.session.deleteMany({ where: { userId: id } });
+  await audit(viewer, "password.reset", { studentId: target.role === "STUDENT" ? id : undefined, detail: `${target.firstName} ${target.lastName}` });
   return back(returnTo, "ok", `New password for ${target.firstName} ${target.lastName}.`, [
     ...(target.username ? [{ label: "Username", value: target.username }] : target.email ? [{ label: "Email", value: target.email }] : []),
     { label: "Password", value: password },
@@ -135,6 +140,7 @@ export async function setActive(form: FormData) {
   if (!target || target.id === user.id) return back("/school/people", "error", "You can't change that account.");
   await db.user.update({ where: { id }, data: { active } });
   if (!active) await db.session.deleteMany({ where: { userId: id } });
+  await audit(user, active ? "account.reactivate" : "account.deactivate", { studentId: target.role === "STUDENT" ? id : undefined, detail: `${target.firstName} ${target.lastName}` });
   return back("/school/people", "ok", `${target.firstName} ${target.lastName} is now ${active ? "active" : "deactivated"}.`);
 }
 
@@ -145,6 +151,7 @@ export async function updateStudentGrade(form: FormData) {
   const target = await db.user.findFirst({ where: { id, schoolId: school.id, role: "STUDENT" } });
   if (!target || !g.success) return back("/school/people", "error", "Choose a grade from K to 12.");
   await db.user.update({ where: { id }, data: { grade: g.data } });
+  await audit((await admin()).user, "student.grade", { studentId: id, detail: `Grade ${target.grade ?? "?"} → ${g.data}` });
   return back(`/students/${id}`, "ok", `Grade updated.`);
 }
 
@@ -280,7 +287,8 @@ export async function saveSettings(form: FormData) {
   const launchRaw = String(form.get("launchDay") ?? "");
   const launchDay = launchRaw ? parseIsoDate(launchRaw) : null;
   if (launchRaw && !launchDay) return back("/school/settings", "error", "That Launch Day date isn't valid.");
-  await db.school.update({ where: { id: school.id }, data: { ...p.data, aiTutor: form.get("aiTutor") === "on", ...(launchDay ? { launchDay } : {}) } });
+  await db.school.update({ where: { id: school.id }, data: { ...p.data, aiTutor: form.get("aiTutor") === "on", aiNeedsConsent: form.get("aiNeedsConsent") === "on", ...(launchDay ? { launchDay } : {}) } });
+  await audit((await admin()).user, "settings.change", { detail: `AI tutor ${form.get("aiTutor") === "on" ? "on" : "off"}; AI needs consent ${form.get("aiNeedsConsent") === "on" ? "yes" : "no"}` });
   if (launchDay && (!school.launchDay || school.launchDay.getTime() !== launchDay.getTime())) {
     // Move every project's Launch Day milestone to the new date.
     await db.projectMilestone.updateMany({ where: { key: "launch", project: { schoolId: school.id, schoolYear: schoolYearOf(launchDay) } }, data: { dueDate: launchDay } });

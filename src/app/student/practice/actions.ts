@@ -8,6 +8,7 @@ import { lookupFor } from "@/lib/questions";
 import { pickItems } from "@/lib/runner";
 import { explain, tutorConfigured } from "@/lib/tutor";
 import { MASTERY_PASS, MASTERY_SET } from "@/lib/lessons";
+import { aiAllowedFor } from "@/lib/consent";
 
 const SET_SIZE = 5;
 
@@ -66,6 +67,7 @@ export async function answerPractice(sessionId: string, index: number, choice: n
 export async function explainPractice(sessionId: string, index: number): Promise<{ text?: string; error?: string }> {
   const user = await requireUser(["STUDENT"]);
   if (!user.school?.aiTutor || !tutorConfigured()) return { error: "The tutor isn't turned on for your school." };
+  if (!(await aiAllowedFor(user.id, user.school))) return { error: "The tutor needs a parent's permission first. Ask your parent to turn on AI features on their dashboard." };
   const s = await db.practiceSession.findFirst({ where: { id: sessionId, studentId: user.id } });
   if (!s) return { error: "Practice set not found." };
   const questions = s.questions as StoredQuestion[];

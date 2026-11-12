@@ -71,6 +71,18 @@ src/lib/templates.ts      default school day and Ontario calendar template
 src/app/                  pages by role: admin/, school/, coach/, parent/, student/, students/[id]
 ```
 
+## Phase 7: privacy and school readiness
+
+- **Audit log** (School admin → Privacy): every view of a student's records by staff or parents, plus exports, deletions, password resets, consent and settings changes.
+- **Consent:** parents give or withdraw consent for platform use and for AI features (at sign-up and from their dashboard); admins can record paper consent. Schools choose whether AI features need consent (on by default). Without it, a student's AI tutor and project ideas stay off.
+- **Data rights:** parents and school admins can download everything about a student as JSON; parents can request deletion; school admins permanently delete a student and all their data.
+- **Privacy notice** at `/privacy` (a draft for legal review).
+- **Accessibility:** the end-to-end test runs axe-core (WCAG 2.1 A/AA) on 15 main screens.
+
+### Backups (do this in Railway)
+
+Open the **Postgres** service → **Backups** (or **Volumes → Backups**, depending on your plan) and turn on scheduled backups (daily, keep at least 7). Test a restore once on a copy before relying on it.
+
 ## Privacy notes
 
 - Passwords are hashed with scrypt; sessions are random tokens stored hashed.

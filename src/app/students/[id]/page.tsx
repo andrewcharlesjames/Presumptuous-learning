@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { auditView } from "@/lib/audit";
+import { consentFor } from "@/lib/consent";
+import { ConsentControls } from "@/components/ConsentControls";
+import { deleteStudentPermanently } from "@/app/privacy-actions/actions";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { canManageStudent, canViewStudent } from "@/lib/access";
@@ -36,6 +40,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
   const school = student.school;
   const self = viewer.id === student.id;
   const staff = await canManageStudent(viewer, id);
+  await auditView(viewer, id, "student.view");
   const today = todayIn(school.timezone);
   const [scored, history, attendance, reports, practice, recentSets, skills] = await Promise.all([
     latestScored(id),
@@ -78,6 +83,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
   ]);
   const st = streakMap.get(id) ?? { current: 0, best: 0 };
   const isFamily = self || viewer.role === "PARENT";
+  const consent = viewer.role === "SCHOOL_ADMIN" ? (await consentFor([id])).get(id) : undefined;
   const [assignments, notes, menu] = await Promise.all([
     db.assignment.findMany({ where: { targets: { some: { studentId: id } } }, include: { targets: true, createdBy: true }, orderBy: { createdAt: "desc" }, take: 20 }),
     db.coachNote.findMany({ where: { studentId: id, ...(isFamily ? { shared: true } : {}) }, include: { author: true }, orderBy: { createdAt: "desc" }, take: 30 }),
@@ -312,6 +318,22 @@ export default async function StudentProfile({ params, searchParams }: { params:
           }) : <p className="muted small">None yet.</p>}
         </div>
       </section>
+
+      {viewer.role === "SCHOOL_ADMIN" && consent && (
+        <section className="card">
+          <h2>Privacy and consent</h2>
+          <ConsentControls studentId={student.id} state={consent} returnTo={`/students/${student.id}`} recording />
+          <p className="small"><a href={`/api/students/${student.id}/export`}>Download all of {student.firstName}&apos;s data (JSON file)</a> · <Link href={`/school/privacy?student=${student.id}`}>Who has viewed or changed these records</Link></p>
+          <details className="items"><summary>Permanently delete {student.firstName} and all their data</summary>
+            <form action={deleteStudentPermanently} className="stack" style={{ gap: 8, marginTop: 10 }}>
+              <input type="hidden" name="studentId" value={student.id} />
+              <p className="small">This removes the account, assessments, plans, practice, check-ins, attendance, notes, portfolio, files and projects. It can&apos;t be undone. Download the data first if the family wants a copy.</p>
+              <label className="field small">Type “{student.firstName} {student.lastName}” to confirm<input id="confirm-delete" name="confirm" type="text" autoComplete="off" required /></label>
+              <div><button className="btn small danger">Delete permanently</button></div>
+            </form>
+          </details>
+        </section>
+      )}
 
       {(staff || viewer.role === "PARENT") && (
         <section className="card">

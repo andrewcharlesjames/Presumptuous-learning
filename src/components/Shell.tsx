@@ -12,7 +12,7 @@ export function navFor(user: CurrentUser): { href: string; label: string }[] {
     case "PLATFORM_ADMIN": return [{ href: "/admin", label: "Schools" }, { href: "/admin/questions", label: "Question bank" }, { href: "/admin/lessons", label: "Lessons" }];
     case "SCHOOL_ADMIN": return [
       { href: "/school", label: "Overview" }, { href: "/school/people", label: "People" }, { href: "/school/classes", label: "Classes" },
-      { href: "/school/schedule", label: "School day" }, { href: "/school/calendar", label: "Calendar" }, { href: "/showcase", label: "Showcase" }, { href: "/school/settings", label: "Settings" },
+      { href: "/school/schedule", label: "School day" }, { href: "/school/calendar", label: "Calendar" }, { href: "/showcase", label: "Showcase" }, { href: "/school/privacy", label: "Privacy" }, { href: "/school/settings", label: "Settings" },
     ];
     case "COACH": return [{ href: "/coach", label: "My classes" }, { href: "/showcase", label: "Showcase" }];
     case "PARENT": return [{ href: "/parent", label: "My children" }, { href: "/showcase", label: "Showcase" }];
@@ -46,6 +46,9 @@ export async function Shell({ user, children }: { user: CurrentUser; children: R
         )}
         {children}
       </main>
+      <footer className="small muted" style={{ marginTop: 40, paddingTop: 16, borderTop: "1px solid var(--line)" }}>
+        <a href="/privacy" style={{ color: "inherit" }}>Privacy notice</a>
+      </footer>
     </div>
   );
 }

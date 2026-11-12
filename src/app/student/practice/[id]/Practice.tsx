@@ -35,7 +35,7 @@ export function Practice({ id, items, start, tutor }: { id: string; items: Item[
 
   return (
     <section className="quiz" style={{ margin: 0 }}>
-      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={items.length} aria-valuenow={idx}><i style={{ width: `${(idx / items.length) * 100}%` }} /></div>
+      <div className="progress" role="progressbar" aria-label="Practice progress" aria-valuemin={0} aria-valuemax={items.length} aria-valuenow={idx}><i style={{ width: `${(idx / items.length) * 100}%` }} /></div>
       <div className="card" style={{ gap: 18, padding: 26 }}>
         <div className="row"><span className="eyebrow">Question {idx + 1} of {items.length}</span><span className="chip">{q.strand}</span></div>
         <p className="qtext" id="qtext">{q.prompt}</p>

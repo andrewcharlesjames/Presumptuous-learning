@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { auditView } from "@/lib/audit";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { canManageStudent, canViewStudent } from "@/lib/access";
@@ -18,6 +19,7 @@ export default async function Portfolio({ params, searchParams }: { params: Prom
   if (!student?.school) notFound();
   const self = viewer.id === id;
   const staff = await canManageStudent(viewer, id);
+  await auditView(viewer, id, "student.portfolio");
   const filter = d && isDiscipline(d) ? d : null;
   const [works, counts] = await Promise.all([
     db.artwork.findMany({

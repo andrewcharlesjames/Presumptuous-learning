@@ -18,7 +18,7 @@ export function ProjectRoadmap({ project, milestones, mode, today, returnTo }: {
   return (
     <section className="card">
       <div className="spread"><h2>Roadmap</h2><span className="small muted num">{approved} of {milestones.length} steps approved</span></div>
-      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={milestones.length} aria-valuenow={approved}><i style={{ width: `${(approved / milestones.length) * 100}%` }} /></div>
+      <div className="progress" role="progressbar" aria-label="Project steps approved" aria-valuemin={0} aria-valuemax={milestones.length} aria-valuenow={approved}><i style={{ width: `${(approved / milestones.length) * 100}%` }} /></div>
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 0 }}>
         {milestones.map(m => {
           const st = STATUS[m.status];

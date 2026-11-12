@@ -8,6 +8,7 @@ import { setFlash } from "@/lib/flash";
 import { schoolYearOf, todayIn } from "@/lib/dates";
 import { defaultLaunchDay, INTERVIEW, MILESTONES, milestoneDates, type Idea, type ProjectTypeName } from "@/lib/projects";
 import { suggestIdeas } from "@/lib/projects-ai";
+import { aiAllowedFor } from "@/lib/consent";
 
 const isType = (x: string): x is ProjectTypeName => x === "LIFE_SKILLS" || x === "PURPOSE";
 const clip = (v: FormDataEntryValue | null, n: number) => String(v ?? "").trim().slice(0, n);
@@ -41,7 +42,8 @@ export async function startProject(form: FormData) {
 
 /** Save the discovery answers and ask the AI for ideas. */
 export async function runDiscovery(_: unknown, form: FormData): Promise<{ error?: string } | undefined> {
-  const { user, p } = await ownProject(String(form.get("id")));
+  const { user, school, p } = await ownProject(String(form.get("id")));
+  if (!(await aiAllowedFor(user.id, school))) return { error: "Idea suggestions need a parent's permission for AI features. Write your own idea below for now." };
   const answers = Object.fromEntries(INTERVIEW.map(i => [i.key, clip(form.get(i.key), 500)]));
   if (Object.values(answers).filter(Boolean).length < 3) return { error: "Answer at least three questions so the ideas fit you." };
   await db.project.update({ where: { id: p.id }, data: { interview: answers } });

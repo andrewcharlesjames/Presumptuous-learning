@@ -27,6 +27,7 @@
     "@types/node": "22.10.7",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
+    "axe-core": "4.14.0",
     "typescript": "5.7.3"
   },
   "overrides": {

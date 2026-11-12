@@ -9,6 +9,7 @@ import { defaultLaunchDay, INTERVIEW, PROJECT_LABEL, type Idea } from "@/lib/pro
 import { tutorConfigured } from "@/lib/tutor";
 import { chooseIdea, saveProposal } from "@/app/projects/actions";
 import { Discovery } from "./Discovery";
+import { aiAllowedFor } from "@/lib/consent";
 
 export const metadata = { title: "Project" };
 
@@ -25,6 +26,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const ideas = (p.ideas ?? []) as Idea[];
   const answers = (p.interview ?? {}) as Record<string, string>;
   const life = p.type === "LIFE_SKILLS";
+  const aiOn = tutorConfigured() && await aiAllowedFor(user.id, school);
   const proposalLocked = proposal?.status === "APPROVED" || proposal?.status === "SUBMITTED";
 
   return (
@@ -53,10 +55,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               </form>
             ))}</div>
             <details className="items"><summary>Answer the questions again for new ideas</summary>
-              <div style={{ marginTop: 10 }}><Discovery id={p.id} questions={INTERVIEW} answers={answers} aiOn={tutorConfigured()} /></div>
+              <div style={{ marginTop: 10 }}><Discovery id={p.id} questions={INTERVIEW} answers={answers} aiOn={aiOn} /></div>
             </details>
           </section>
-        ) : <Discovery id={p.id} questions={INTERVIEW} answers={answers} aiOn={tutorConfigured()} />
+        ) : <Discovery id={p.id} questions={INTERVIEW} answers={answers} aiOn={aiOn} />
       )}
 
       {!discovered && (
