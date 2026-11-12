@@ -3,6 +3,7 @@ import { readFlash } from "@/lib/flash";
 import { db } from "@/lib/db";
 import { todayIn } from "@/lib/dates";
 import { licenceState } from "@/lib/licence";
+import { Info } from "./Info";
 import { Logo } from "./Logo";
 import { NavLinks } from "./NavLinks";
 import { FlashClear } from "./FlashClear";
@@ -56,7 +57,10 @@ export async function Shell({ user, children }: { user: CurrentUser; children: R
         )}
         {licenceWarn && (
           <p className="flash error licence-warn">
-            <span>{licenceWarn}{user.role === "SCHOOL_ADMIN" && <> <a href="/school/billing">Plan &amp; billing</a></>}</span>
+            <span>{licenceWarn}{user.role === "SCHOOL_ADMIN" && <> <a href="/school/billing">Plan &amp; billing</a></>}
+              <Info label="Why am I seeing this?">{user.role === "SCHOOL_ADMIN"
+                ? "This shows on every page when your licence ends within 30 days, has ended, or you have more active students than seats. Nothing is switched off. It disappears once Presumptuous Learning updates your licence or you deactivate students."
+                : "Your school's licence has passed its end date. Everything still works. Your school admin can renew it with Presumptuous Learning."}</Info></span>
           </p>
         )}
         {children}

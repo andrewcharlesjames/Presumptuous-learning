@@ -170,6 +170,14 @@ details.items summary { cursor: pointer; color: var(--muted); font-size: .86rem;
   .card { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* info "i" tips */
+.info { position: relative; display: inline-flex; vertical-align: middle; margin-left: 6px; font-weight: 400; letter-spacing: normal; text-transform: none; }
+.info-btn { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--accent-text); background: transparent; color: var(--accent-text); font: 700 12px/1 Georgia, "Times New Roman", serif; font-style: italic; cursor: pointer; display: inline-grid; place-items: center; padding: 0; }
+.info-btn:hover, .info-btn[aria-expanded=true] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.info-btn::after { content: ""; position: absolute; inset: -12px; } /* bigger tap target */
+.info-pop { position: fixed; z-index: 50; width: min(320px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: var(--r); padding: 12px 14px; box-shadow: 0 10px 28px rgba(0,0,0,.18); font-size: .88rem; line-height: 1.5; display: grid; gap: 6px; text-align: left; white-space: normal; }
+.info-pop b { font-size: .92rem; }
+@media print { .info { display: none; } }
 /* marketing site */
 .mkt .navlink { color: var(--ink); text-decoration: none; font-weight: 600; font-size: .92rem; padding: 6px 8px; }
 .mkt .navlink:hover { color: var(--accent-text); }

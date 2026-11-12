@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Info } from "@/components/Info";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
@@ -22,7 +23,7 @@ export default async function AdminPage() {
       </div>
       {schools.length ? (
         <div className="tablewrap"><table>
-          <thead><tr><th>School</th><th>Code</th><th>Students</th><th>Classes</th><th>Licence</th><th></th></tr></thead>
+          <thead><tr><th>School</th><th>Code</th><th>Students<Info label="Students">Active students / seats on the licence.</Info></th><th>Classes</th><th>Licence<Info label="Licence">Pilot or Active, and when it ends. Click a school&apos;s name to change its seats, dates and price, and to create invoices.</Info></th><th></th></tr></thead>
           <tbody>{schools.map(s => (
             <tr key={s.id}>
               <td><Link href={`/admin/schools/${s.id}`}><b>{s.name}</b></Link>{s.isDemo && <span className="chip" style={{ marginLeft: 8 }}>Demo</span>}</td>

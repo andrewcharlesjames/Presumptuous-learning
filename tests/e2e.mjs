@@ -39,6 +39,12 @@ async function adultLogin(page, email, password) {
   await page.click("button:has-text('Sign in')");
   await page.waitForLoadState("networkidle");
 }
+async function openTip(page, label) {
+  // the button only works once the page's scripts have loaded, so retry briefly
+  const btn = page.locator(`button[aria-label='About ${label}']`);
+  for (let i = 0; i < 20 && (await btn.getAttribute("aria-expanded")) !== "true"; i++) { await btn.click(); await page.waitForTimeout(250); }
+  return page.locator(".info-pop").innerText({ timeout: 5000 }).catch(() => "");
+}
 async function visit(page, path, name) {
   const r = await page.goto(`${BASE}${path}`);
   ok(r.status() < 400, `${name}: ${path} → ${r.status()}`);
@@ -521,6 +527,10 @@ await shot(pp, "15-phone-dark-student");
   await A.page.fill("#invSeats", "120"); await A.page.fill("#invPrice", "45");
   await A.page.click("button:has-text('Create invoice')");
   ok((await flashText(A.page, "Invoice PL-")).includes("$6,102.00"), "invoice total adds 13% HST (120 × $45 → $6,102.00)");
+  ok((await openTip(A.page, "Seats")).includes("refused once they"), "info tip explains seats");
+  await shot(A.page, "48-info-tip", false);
+  await A.page.keyboard.press("Escape");
+  ok(await A.page.locator(".info-pop").count() === 0, "Escape closes the info tip");
   await shot(A.page, "41-admin-licence");
   await A.page.locator("a:has-text('PL-')").first().click();
   await A.page.waitForURL(/\/invoices\/.+/);
@@ -537,6 +547,7 @@ await shot(pp, "15-phone-dark-student");
   ok(await R.page.locator(".licence-warn:has-text('licence covers 1')").count() === 1, "school admin sees the over-seats banner");
   await R.page.goto(`${BASE}/school/billing`);
   ok(await R.page.locator("h1:has-text('Plan & billing')").count() === 1 && await R.page.locator("a:has-text('PL-')").count() >= 1, "school admin sees plan and invoices");
+  ok((await openTip(R.page, "Owing")).includes("HST"), "school admin info tip explains what's owing");
   await shot(R.page, "43-school-billing");
   ok((await R.page.goto(invoiceUrl)).status() === 200, "school admin opens their invoice");
   ok((await P.page.goto(invoiceUrl)).status() === 404, "another school's admin cannot open the invoice");
@@ -587,7 +598,7 @@ await shot(pp, "15-phone-dark-student");
     [anon, "/"], [anon, "/login"], [anon, "/join"], [anon, "/privacy"],
     [S, "/student"], [S, "/student/studio"], [S, "/student/projects"], [S, studentLinkSelf ?? "/student"],
     [C, "/coach"], [P, "/school"], [P, "/school/people"], [P, "/school/privacy"], [P, "/school/settings"], [F, "/parent"], [F, "/showcase"],
-    [A, "/admin/leads"], [R, "/school/billing"],
+    [A, "/admin/leads"], [R, "/school/billing"], [A, "/admin"],
   ];
   const found = new Map();
   for (const [sess, path] of pages) {
