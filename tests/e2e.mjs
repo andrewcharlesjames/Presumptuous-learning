@@ -236,6 +236,34 @@ const meLink = await S.page.locator("a:has-text('My plan')").getAttribute("href"
 await S.page.goto(`${BASE}${meLink}`);
 ok(await S.page.locator("text=Practice, last 7 days").count() > 0 && await S.page.locator("text=/\\d+ sets? ·/").count() > 0, "practice shows on the student's plan page");
 
+/* 5b. the school day: check in, arts, reflect */
+await S.page.goto(`${BASE}/student`);
+const schoolDay = await S.page.locator("text=How are you feeling this morning?").count() > 0;
+if (schoolDay) {
+  await S.page.locator("label:has-text('Good')").first().click();
+  await S.page.fill("#goal", "Master one new skill");
+  await S.page.click("button:has-text('Check in')");
+  await S.page.waitForSelector("text=Checked in", { timeout: 15000 });
+  ok(true, "student checks in with a mood and a goal");
+  await S.page.locator("form:has(input[name=kind][value=arts]) button").click();
+  await S.page.waitForSelector("text=Arts", { timeout: 15000 });
+  await S.page.fill("#learned", "How to check my work");
+  await S.page.locator("label:has-text('Overreached')").click();
+  await S.page.click("button:has-text('Save my reflection')");
+  await S.page.waitForSelector("text=Reflected", { timeout: 15000 });
+  const progress = await S.page.locator("h2:has-text('Today:')").innerText();
+  ok(/[45] of 5 done/.test(progress), `day progress updates (${progress})`);
+  ok(await S.page.locator("text=/1-day streak/").count() === 1, "completing check-in, learning and reflection starts a streak");
+  await shot(S.page, "20-student-day");
+  await C.page.goto(`${BASE}/coach`);
+  await C.page.click(".card >> nth=0");
+  await C.page.waitForLoadState("networkidle");
+  ok(await C.page.locator("h2:has-text('Today in class')").count() === 1 && await C.page.locator("text=Master one new skill").count() === 1, "coach sees today's check-in and goal");
+  await shot(C.page, "21-coach-today");
+} else {
+  ok(true, "(not a school day today: skipped check-in steps)");
+}
+
 /* 6. parent joins with the family code */
 const F = await session("parent");
 await F.page.goto(`${BASE}/join`);
@@ -245,6 +273,8 @@ await F.page.fill("#email", `pat.${Date.now()}@example.com`); await F.page.fill(
 await F.page.click("button:has-text('Create parent account')");
 await F.page.waitForURL(/\/parent/);
 ok((await F.page.locator("h2").first().innerText()).includes("Jordan"), "parent sees their child");
+if (schoolDay) ok(await F.page.locator("text=Checked in feeling").count() === 1 && await F.page.locator("text=How to check my work").count() === 1, "parent sees today's check-in and reflection");
+await shot(F.page, "22-parent-day");
 await shot(F.page, "12-parent");
 await F.page.click("a:has-text('See plan')");
 await F.page.waitForURL(/\/students\//);

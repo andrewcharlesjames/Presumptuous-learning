@@ -95,6 +95,7 @@ model User {
   assessments     Assessment[]
   practice        PracticeSession[]
   skills          SkillProgress[]
+  dailyLogs       DailyLog[]
   attendance      Attendance[]   @relation("AttendanceStudent")
   markedAttendance Attendance[]  @relation("AttendanceMarker")
 
@@ -319,4 +320,26 @@ model SkillProgress {
 
   @@unique([studentId, subject, grade, skill])
   @@index([studentId, state])
+}
+
+// ---------------- Phase 3: the school day ----------------
+
+/// One row per student per school day: morning check-in and end-of-day reflection.
+model DailyLog {
+  id           String    @id @default(cuid())
+  studentId    String
+  student      User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date         DateTime  @db.Date
+  mood         Int? // 1 = rough … 5 = great
+  goal         String    @default("")
+  checkedInAt  DateTime?
+  learned      String    @default("")
+  question     String    @default("")
+  effort       Int? // 1 = took it easy … 4 = overreached
+  reflectedAt  DateTime?
+  artsDone     Boolean   @default(false)
+  lifeDone     Boolean   @default(false)
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([studentId, date])
 }

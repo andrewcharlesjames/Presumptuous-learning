@@ -9,11 +9,14 @@ import { PlanView, type PlanData } from "@/components/PlanView";
 import { latestScored, countStatuses } from "@/lib/records";
 import { buildPlan, MODE_LABEL, nextLevelSkills, nextTarget } from "@/lib/plan";
 import { type Status, type StoredResult } from "@/lib/assessment";
-import { addDays, fmtDate, fmtStamp, MONTHS, todayIn, WEEKDAYS } from "@/lib/dates";
+import { addDays, fmtDate, fmtStamp, isoDate, MONTHS, todayIn, WEEKDAYS } from "@/lib/dates";
 import { gradeName, plural } from "@/lib/subjects";
 import { SUBJECT_BY_ID, isSubjectId } from "@/lib/subjects";
 import { practiceSummary } from "@/lib/practice";
 import { learnHref } from "@/lib/links";
+import { dayStatuses, streaks, weekRange } from "@/lib/schoolday";
+import { effortLabel, moodLabel } from "@/lib/prompts";
+import { WeekStrip } from "@/components/DayParts";
 import { startAssessment } from "@/app/student/actions";
 import { resetPassword, updateStudentGrade } from "@/app/school/actions";
 
@@ -64,6 +67,13 @@ export default async function StudentProfile({ params, searchParams }: { params:
     };
   }
   const c = scored ? countStatuses(scored.results) : null;
+  const week = weekRange(today);
+  const [weekStatus, streakMap, weekLogs] = await Promise.all([
+    dayStatuses(school, [id], week.from, week.to),
+    streaks(school, [id]),
+    db.dailyLog.findMany({ where: { studentId: id, date: { gte: week.from, lte: week.to } }, orderBy: { date: "asc" } }),
+  ]);
+  const st = streakMap.get(id) ?? { current: 0, best: 0 };
 
   return (
     <Shell user={viewer}>
@@ -121,6 +131,25 @@ export default async function StudentProfile({ params, searchParams }: { params:
           {planData && <PlanView plan={planData} />}
         </>
       )}
+
+      <section className="card">
+        <div className="spread"><h2>This week</h2><span className="small"><b>{st.current}</b>-day streak · best {st.best}</span></div>
+        <WeekStrip days={weekStatus.get(id) ?? []} today={isoDate(today)} since={isoDate(todayIn(school.timezone, student.createdAt))} />
+        {weekLogs.filter(l => l.checkedInAt || l.reflectedAt).length > 0 && (
+          <div className="tablewrap" style={{ border: 0 }}><table>
+            <thead><tr><th>Day</th><th>Feeling</th><th>Goal</th><th>Learned</th><th>Effort</th></tr></thead>
+            <tbody>{weekLogs.map(l => (
+              <tr key={l.id}>
+                <td className="small">{fmtDate(l.date, { weekday: "short", month: "short", day: "numeric" })}</td>
+                <td className="small">{moodLabel(l.mood)}</td>
+                <td className="small">{l.goal || "—"}</td>
+                <td className="small">{l.learned || "—"}{l.question && <><br /><span className="muted">Question: {l.question}</span></>}</td>
+                <td className="small">{effortLabel(l.effort)}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        )}
+      </section>
 
       <section className="card">
         <div className="spread"><h2>Skills</h2><span className="small muted num">{skills.filter(k => k.state === "MASTERED").length} mastered · {skills.filter(k => k.state !== "MASTERED").length} in progress</span></div>

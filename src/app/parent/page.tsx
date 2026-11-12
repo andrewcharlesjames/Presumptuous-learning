@@ -6,7 +6,10 @@ import { SplitBar, StatusPill } from "@/components/Status";
 import { PasswordForm } from "@/components/PasswordForm";
 import { countStatuses, dayInfo, latestResults } from "@/lib/records";
 import { practiceSummary } from "@/lib/practice";
-import { addDays, fmtStamp } from "@/lib/dates";
+import { addDays, fmtStamp, isoDate, todayIn } from "@/lib/dates";
+import { dayStatuses, streaks, weekRange } from "@/lib/schoolday";
+import { moodLabel } from "@/lib/prompts";
+import { WeekStrip } from "@/components/DayParts";
 import { gradeName, SUBJECT_BY_ID } from "@/lib/subjects";
 import { linkChild } from "./actions";
 
@@ -25,6 +28,12 @@ export default async function ParentHome() {
     practiceSummary(ids, 7),
   ]);
   const going = new Set(inProgress.map(a => a.studentId));
+  const week = weekRange(info.date);
+  const [weekStatus, streakMap, logs] = await Promise.all([
+    dayStatuses(school, ids, week.from, week.to),
+    streaks(school, ids),
+    db.dailyLog.findMany({ where: { studentId: { in: ids }, date: info.date } }),
+  ]);
   return (
     <Shell user={user}>
       <div><span className="eyebrow">{school.name}</span><h1>My children</h1></div>
@@ -50,6 +59,19 @@ export default async function ParentHome() {
                   <p className="small muted">Assessed {fmtStamp(l.completedAt, school.timezone, { month: "long", day: "numeric" })}</p>
                 </>
               ) : <p className="muted small">{going.has(k.id) ? "Assessment in progress." : "Not assessed yet."}</p>}
+              {info.schoolDay && (() => {
+                const l = logs.find(x => x.studentId === k.id); const d = weekStatus.get(k.id)?.find(x => x.date === isoDate(info.date));
+                return (
+                  <div className="stack" style={{ gap: 4, padding: "10px 12px", background: "var(--paper)", borderRadius: 10 }}>
+                    <span className="eyebrow">Today</span>
+                    <p className="small">{l?.checkedInAt ? <>Checked in feeling <b>{moodLabel(l.mood)}</b>{l.goal && <>. Goal: <b>{l.goal}</b></>}</> : "Hasn't checked in yet."}</p>
+                    <p className="small">{d?.learning ? `${d.learning} learning activit${d.learning === 1 ? "y" : "ies"} finished.` : "No lessons or practice finished yet."}</p>
+                    {l?.reflectedAt && <p className="small">Reflection: “{l.learned}”{l.question && <> · Question: “{l.question}”</>}</p>}
+                  </div>
+                );
+              })()}
+              <p className="small"><b>{streakMap.get(k.id)?.current ?? 0}</b>-day streak</p>
+              <WeekStrip days={weekStatus.get(k.id) ?? []} today={isoDate(info.date)} since={isoDate(todayIn(school.timezone, k.createdAt))} />
               <p className="small">Practice this week: {(() => { const p = practice.get(k.id); return p ? `${p.sets} set${p.sets === 1 ? "" : "s"}, ${p.questions} questions, ${Math.round((p.correct / Math.max(1, p.questions)) * 100)}% correct` : "none yet"; })()}</p>
               <p className="small">
                 Today: {info.schoolDay ? (t ? t.status.toLowerCase() : "attendance not taken yet") : `no school (${info.reason})`}

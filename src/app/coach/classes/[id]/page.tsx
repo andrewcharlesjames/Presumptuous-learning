@@ -6,6 +6,8 @@ import { Shell } from "@/components/Shell";
 import { SubjectChips } from "@/components/Status";
 import { dayInfo, latestResults } from "@/lib/records";
 import { practiceSummary } from "@/lib/practice";
+import { dayStatuses, streaks } from "@/lib/schoolday";
+import { moodLabel } from "@/lib/prompts";
 import { addDays, fmtLong, fmtStamp, isoDate, parseIsoDate, todayIn } from "@/lib/dates";
 import { gradeShort, plural } from "@/lib/subjects";
 import { saveAttendance } from "../../actions";
@@ -41,6 +43,13 @@ export default async function ClassView({ params, searchParams }: { params: Prom
   const attBy = new Map(att.map(a => [a.studentId, a]));
   const going = new Set(inProgress.map(a => a.studentId));
   const returnTo = `/coach/classes/${cls.id}`;
+  const [todayStatus, logs, streakMap] = await Promise.all([
+    dayStatuses(school, ids, today, today),
+    db.dailyLog.findMany({ where: { studentId: { in: ids }, date: today } }),
+    streaks(school, ids),
+  ]);
+  const logOf = new Map(logs.map(l => [l.studentId, l]));
+  const lowMood = logs.filter(l => (l.mood ?? 5) <= 2);
 
   return (
     <Shell user={user}>
@@ -51,6 +60,33 @@ export default async function ClassView({ params, searchParams }: { params: Prom
           <p className="muted small">{plural(school.coachTitle)}: {cls.coaches.map(c => `${c.coach.firstName} ${c.coach.lastName}`).join(", ") || "none"} · Students sign in with school code <b className="num">{school.code}</b></p>
         </div>
       </div>
+
+      {date.getTime() === today.getTime() && info.schoolDay && students.length > 0 && (
+        <section className="stack">
+          <div className="spread"><h2>Today in class</h2>
+            <span className="small muted">{logs.filter(l => l.checkedInAt).length} of {students.length} checked in · {logs.filter(l => l.reflectedAt).length} reflected</span></div>
+          {lowMood.length > 0 && (
+            <div className="flash error"><span>{lowMood.length === 1 ? "1 student" : `${lowMood.length} students`} checked in feeling Low or Rough: {lowMood.map(l => students.find(s => s.id === l.studentId)?.firstName).filter(Boolean).join(", ")}. A quick check-in from you may help.</span></div>
+          )}
+          <div className="tablewrap"><table>
+            <thead><tr><th>Student</th><th>Feeling</th><th>Goal</th><th>Learning today</th><th>Arts · Life</th><th>Reflection</th><th>Streak</th></tr></thead>
+            <tbody>{students.map(s => {
+              const l = logOf.get(s.id); const d = todayStatus.get(s.id)?.[0];
+              return (
+                <tr key={s.id}>
+                  <td><Link href={`/students/${s.id}`}>{s.firstName} {s.lastName}</Link></td>
+                  <td>{l?.checkedInAt ? <span className={`pill ${(l.mood ?? 3) <= 2 ? "below" : (l.mood ?? 3) >= 4 ? "above" : "at"}`}>{moodLabel(l.mood)}</span> : <span className="small muted">Not yet</span>}</td>
+                  <td className="small">{l?.goal || <span className="muted">—</span>}</td>
+                  <td className="small num">{d?.learning ? `${d.learning} activit${d.learning === 1 ? "y" : "ies"}` : <span className="muted">None yet</span>}</td>
+                  <td className="small">{l?.artsDone ? "✓" : "·"} {l?.lifeDone ? "✓" : "·"}</td>
+                  <td className="small">{l?.reflectedAt ? <span title={l.learned}>✓ {l.learned.slice(0, 40)}{l.learned.length > 40 ? "…" : ""}</span> : <span className="muted">Not yet</span>}</td>
+                  <td className="num small">{streakMap.get(s.id)?.current ?? 0}</td>
+                </tr>
+              );
+            })}</tbody>
+          </table></div>
+        </section>
+      )}
 
       <section className="stack">
         <h2>Where each student is</h2>

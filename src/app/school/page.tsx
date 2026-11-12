@@ -24,6 +24,9 @@ export default async function SchoolOverview() {
   const att = await db.attendance.groupBy({ by: ["status"], where: { schoolId: school.id, date: info.date }, _count: true });
   const attCount = Object.fromEntries(att.map(a => [a.status, a._count])) as Record<string, number>;
   const marked = Object.values(attCount).reduce((a, b) => a + b, 0);
+  const dayLogs = await db.dailyLog.findMany({ where: { date: info.date, student: { schoolId: school.id } }, select: { mood: true, checkedInAt: true, reflectedAt: true } });
+  const checkedIn = dayLogs.filter(l => l.checkedInAt).length, reflected = dayLogs.filter(l => l.reflectedAt).length;
+  const low = dayLogs.filter(l => l.checkedInAt && (l.mood ?? 5) <= 2).length;
 
   // subject × status distribution across assessed students
   const dist = new Map<string, Record<Status, number>>();
@@ -83,7 +86,8 @@ export default async function SchoolOverview() {
               {info.schoolDay ? (
                 <>
                   <p className="num">{marked} of {students.length} marked · {attCount.PRESENT ?? 0} present · {attCount.LATE ?? 0} late · {attCount.ABSENT ?? 0} absent · {attCount.EXCUSED ?? 0} excused</p>
-                  <p className="muted small">{plural(school.coachTitle)} take attendance from their class page.</p>
+                  <p className="num">{checkedIn} checked in · {reflected} reflected{low > 0 && <> · <span className="pill below">{low} feeling Low or Rough</span></>}</p>
+                  <p className="muted small">{plural(school.coachTitle)} take attendance and see each student&apos;s check-in from their class page.</p>
                 </>
               ) : <p className="muted">No school today ({info.reason}).</p>}
               <h3>Needs attention</h3>
