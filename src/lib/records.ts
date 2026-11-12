@@ -112,3 +112,9 @@ export async function createSchool(input: {
 }
 
 export const fullName = (u: { firstName: string; lastName: string }) => `${u.firstName} ${u.lastName}`;
+
+/** Skills a student has mastered, as "subject|skill" (any grade). */
+export async function masteredSet(studentId: string): Promise<Set<string>> {
+  const rows = await db.skillProgress.findMany({ where: { studentId, state: "MASTERED" }, select: { subject: true, skill: true } });
+  return new Set(rows.map(r => `${r.subject}|${r.skill}`));
+}

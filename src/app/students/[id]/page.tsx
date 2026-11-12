@@ -13,6 +13,7 @@ import { addDays, fmtDate, fmtStamp, MONTHS, todayIn, WEEKDAYS } from "@/lib/dat
 import { gradeName, plural } from "@/lib/subjects";
 import { SUBJECT_BY_ID, isSubjectId } from "@/lib/subjects";
 import { practiceSummary } from "@/lib/practice";
+import { learnHref } from "@/lib/links";
 import { startAssessment } from "@/app/student/actions";
 import { resetPassword, updateStudentGrade } from "@/app/school/actions";
 
@@ -30,13 +31,14 @@ export default async function StudentProfile({ params, searchParams }: { params:
   const self = viewer.id === student.id;
   const staff = await canManageStudent(viewer, id);
   const today = todayIn(school.timezone);
-  const [scored, history, attendance, reports, practice, recentSets] = await Promise.all([
+  const [scored, history, attendance, reports, practice, recentSets, skills] = await Promise.all([
     latestScored(id),
     db.assessment.findMany({ where: { studentId: id, status: "COMPLETE" }, orderBy: { completedAt: "desc" }, select: { id: true, completedAt: true, grade: true, results: true } }),
     db.attendance.findMany({ where: { studentId: id, date: { gte: addDays(today, -30) } } }),
     db.calendarEvent.findMany({ where: { schoolId: school.id, kind: "REPORT" } }),
     practiceSummary([id], 7).then(m => m.get(id)),
     db.practiceSession.findMany({ where: { studentId: id, completedAt: { not: null } }, orderBy: { completedAt: "desc" }, take: 6 }),
+    db.skillProgress.findMany({ where: { studentId: id }, orderBy: { updatedAt: "desc" } }),
   ]);
   const grade = student.grade ?? 0;
   const who = self ? "You" : student.firstName;
@@ -46,7 +48,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
   let planData: PlanData | null = null;
   if (scored) {
     const g = scored.assessment.grade;
-    const p = buildPlan({ grade: g, results: scored.results, today, yearEnd: school.yearEnd, extraMilestones: reports.map(r => ({ date: r.startDate, title: r.title })), skillsAt: scored.skillsAt });
+    const p = buildPlan({ grade: g, results: scored.results, today, yearEnd: school.yearEnd, extraMilestones: reports.map(r => ({ date: r.startDate, title: r.title })), skillsAt: scored.skillsAt, mastered: new Set(skills.filter(k => k.state === "MASTERED").map(k => `${k.subject}|${k.skill}`)) });
     const statusOf = Object.fromEntries(scored.results.map(r => [r.sid, r.status]));
     planData = {
       todayLabel: fmtDate(today, { weekday: "long", month: "long", day: "numeric" }),
@@ -119,6 +121,24 @@ export default async function StudentProfile({ params, searchParams }: { params:
           {planData && <PlanView plan={planData} />}
         </>
       )}
+
+      <section className="card">
+        <div className="spread"><h2>Skills</h2><span className="small muted num">{skills.filter(k => k.state === "MASTERED").length} mastered · {skills.filter(k => k.state !== "MASTERED").length} in progress</span></div>
+        {skills.length ? (
+          <div className="tablewrap" style={{ border: 0 }}><table>
+            <thead><tr><th>Skill</th><th>Subject</th><th>Status</th><th>Checks</th><th>Last check</th></tr></thead>
+            <tbody>{skills.slice(0, 20).map(k => (
+              <tr key={k.id}>
+                <td>{self && k.state !== "MASTERED" ? <Link href={learnHref(k.subject, k.grade, k.skill)}>{k.skill}</Link> : k.skill}<br /><span className="small muted">{gradeName(k.grade)}</span></td>
+                <td className="small">{isSubjectId(k.subject) ? SUBJECT_BY_ID[k.subject].name(grade) : k.subject}</td>
+                <td>{k.state === "MASTERED" ? <span className="pill above">Mastered</span> : k.attempts >= 3 ? <span className="pill below">Needs help</span> : <span className="pill at">Learning</span>}</td>
+                <td className="num small">{k.attempts}</td>
+                <td className="num small">{k.lastTotal ? `${k.lastScore}/${k.lastTotal}` : "—"}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        ) : <p className="muted small">{self ? "Use the Learn it buttons on your Today screen. Each skill has a short lesson, then a 5-question check." : "No lessons started yet."}</p>}
+      </section>
 
       <section className="card">
         <h2>Practice, last 7 days</h2>

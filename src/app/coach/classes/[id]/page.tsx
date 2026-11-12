@@ -30,12 +30,14 @@ export default async function ClassView({ params, searchParams }: { params: Prom
   const info = await dayInfo(school, date);
   const students = cls.students.map(s => s.student).filter(s => s.active);
   const ids = students.map(s => s.id);
-  const [latest, att, inProgress, practice] = await Promise.all([
+  const [latest, att, inProgress, practice, skillRows] = await Promise.all([
     latestResults(ids),
     db.attendance.findMany({ where: { studentId: { in: ids }, date } }),
     db.assessment.findMany({ where: { studentId: { in: ids }, status: "IN_PROGRESS" }, select: { studentId: true } }),
     practiceSummary(ids, 7),
+    db.skillProgress.findMany({ where: { studentId: { in: ids } }, select: { studentId: true, state: true, attempts: true, skill: true } }),
   ]);
+  const skillsOf = (sid: string) => skillRows.filter(k => k.studentId === sid);
   const attBy = new Map(att.map(a => [a.studentId, a]));
   const going = new Set(inProgress.map(a => a.studentId));
   const returnTo = `/coach/classes/${cls.id}`;
@@ -54,7 +56,7 @@ export default async function ClassView({ params, searchParams }: { params: Prom
         <h2>Where each student is</h2>
         {students.length ? (
           <div className="tablewrap"><table>
-            <thead><tr><th>Student</th><th>Grade</th><th>Placement by subject (level 1–4)</th><th>Last assessed</th><th>Practice (7 days)</th><th>Username</th><th></th></tr></thead>
+            <thead><tr><th>Student</th><th>Grade</th><th>Placement by subject (level 1–4)</th><th>Last assessed</th><th>Skills</th><th>Practice (7 days)</th><th>Username</th><th></th></tr></thead>
             <tbody>{students.map(s => {
               const l = latest.get(s.id);
               return (
@@ -63,6 +65,10 @@ export default async function ClassView({ params, searchParams }: { params: Prom
                   <td className="num">{gradeShort(s.grade ?? 0)}</td>
                   <td>{l ? <SubjectChips results={l.results} grade={l.grade} /> : <span className="small muted">{going.has(s.id) ? "Assessment in progress" : "Not assessed yet"}</span>}</td>
                   <td className="small muted num">{l ? fmtStamp(l.completedAt, school.timezone) : "—"}</td>
+                  <td className="small">{(() => {
+                    const k = skillsOf(s.id); const stuck = k.filter(x => x.state !== "MASTERED" && x.attempts >= 3);
+                    return <>{k.filter(x => x.state === "MASTERED").length} mastered · {k.filter(x => x.state !== "MASTERED").length} learning{stuck.length > 0 && <><br /><span className="pill below" title={stuck.map(x => x.skill).join(", ")}>Needs help: {stuck.map(x => x.skill).slice(0, 2).join(", ")}</span></>}</>;
+                  })()}</td>
                   <td className="small num">{(() => { const p = practice.get(s.id); return p ? `${p.sets} sets · ${Math.round((p.correct / Math.max(1, p.questions)) * 100)}%` : <span className="muted">None</span>; })()}</td>
                   <td className="num small">{s.username}</td>
                   <td><form action={resetPassword}><input type="hidden" name="id" value={s.id} /><input type="hidden" name="returnTo" value={returnTo} /><button className="btn small">New password</button></form></td>

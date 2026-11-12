@@ -89,13 +89,19 @@ export type PlanInput = {
   extraMilestones?: { date: Date; title: string }[];
   /** Skills in the bank per subject and grade pool. Defaults to the built-in bank. */
   skillsAt?: SkillsAt;
+  /** Skills the student has already mastered, as "subject|skill". They are left out of the plan. */
+  mastered?: Set<string>;
 };
 export type SkillsAt = (sid: SubjectId) => (p: number) => string[];
 export const builtinSkills: SkillsAt = sid => p => builtinPool(sid, p).map(x => x.skill);
 
-export function buildPlan({ grade: g, results: rs, today, yearEnd, extraMilestones = [], skillsAt = builtinSkills }: PlanInput) {
+export function buildPlan({ grade: g, results: rs, today, yearEnd, extraMilestones = [], skillsAt = builtinSkills, mastered = new Set() }: PlanInput) {
   const b = band(g);
-  const focus = Object.fromEntries(rs.map(r => [r.sid, focusFor(r, g, skillsAt(r.sid))])) as Record<SubjectId, Focus[]>;
+  const focus = Object.fromEntries(rs.map(r => {
+    const all = focusFor(r, g, skillsAt(r.sid));
+    const open = all.filter(f => !mastered.has(`${r.sid}|${f.skill}`));
+    return [r.sid, open.length ? open : [{ skill: "an independent inquiry project", mode: "stretch", grade: Math.min(13, r.working + 2) }]];
+  })) as Record<SubjectId, Focus[]>;
   const sched = weekSchedule(rs, g);
   const byId = Object.fromEntries(rs.map(r => [r.sid, r])) as Record<SubjectId, SubjectResult>;
   const next = gradeName(Math.min(g + 1, 13));

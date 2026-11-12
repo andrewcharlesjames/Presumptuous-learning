@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
-import { dayInfo, latestScored } from "@/lib/records";
+import { dayInfo, latestScored, masteredSet } from "@/lib/records";
+import { learnHref } from "@/lib/links";
 import { buildPlan, MODE_LABEL } from "@/lib/plan";
 import { clockIn, fmtClock, fmtLong } from "@/lib/dates";
 import { gradeName, subjectsForGrade } from "@/lib/subjects";
@@ -22,7 +23,8 @@ export default async function StudentToday() {
     db.assessment.findFirst({ where: { studentId: user.id, status: "IN_PROGRESS" }, select: { answers: true } }),
   ]);
   const now = clockIn(school.timezone);
-  const plan = scored ? buildPlan({ grade: scored.assessment.grade, results: scored.results, today: info.date, yearEnd: school.yearEnd, skillsAt: scored.skillsAt }) : null;
+  const mastered = await masteredSet(user.id);
+  const plan = scored ? buildPlan({ grade: scored.assessment.grade, results: scored.results, today: info.date, yearEnd: school.yearEnd, skillsAt: scored.skillsAt, mastered }) : null;
   const subjectBlocks = plan?.today.blocks.filter(b => b.sid) ?? [];
   const answered = inProgress ? (inProgress.answers as (number | null)[]).filter(a => a !== null).length : 0;
   const total = inProgress ? (inProgress.answers as unknown[]).length : 0;
@@ -86,11 +88,14 @@ export default async function StudentToday() {
                 <div>
                   <h3 style={{ fontSize: "1rem" }}>{b.title} <span className={`mode ${b.mode}`}>{MODE_LABEL[b.mode]}</span></h3>
                   <p className="small muted">{b.how.before}{b.how.skill && <b>{b.how.skill}</b>}{b.how.after}</p>
-                  {b.sid && (
-                    <form action={startPractice} style={{ marginTop: 8 }}>
-                      <input type="hidden" name="subject" value={b.sid} /><input type="hidden" name="skill" value={b.skill ?? ""} /><input type="hidden" name="grade" value={b.grade ?? grade} />
-                      <button className="btn small">Practise now</button>
-                    </form>
+                  {b.sid && b.skill && !b.skill.startsWith("an independent") && (
+                    <div className="row" style={{ marginTop: 8, gap: 8 }}>
+                      <Link className="btn small primary" href={learnHref(b.sid, b.grade ?? grade, b.skill)}>Learn it</Link>
+                      <form action={startPractice}>
+                        <input type="hidden" name="subject" value={b.sid} /><input type="hidden" name="skill" value={b.skill} /><input type="hidden" name="grade" value={b.grade ?? grade} />
+                        <button className="btn small">Practise now</button>
+                      </form>
+                    </div>
                   )}
                 </div>
               </div>

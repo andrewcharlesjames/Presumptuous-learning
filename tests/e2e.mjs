@@ -163,6 +163,58 @@ for (const t of ["This month", "This year"]) { await S.page.click(`button.tab:ha
 await shot(S.page, "10-year-plan");
 await S.page.goto(`${BASE}/student`);
 await shot(S.page, "11-student-today-after");
+// lessons and mastery: seed a sample lesson (the AI writes real ones), then fail once and pass once
+{
+  const { PrismaClient } = await import("@prisma/client");
+  const prisma = new PrismaClient();
+  const learnLinks = S.page.locator("a:has-text('Learn it')");
+  ok(await learnLinks.count() > 0, "Today plan has Learn it buttons");
+  const hrefs = [];
+  for (let i = 0; i < Math.min(2, await learnLinks.count()); i++) hrefs.push(await learnLinks.nth(i).getAttribute("href"));
+  const seed = async href => {
+    const u = new URL(href, BASE);
+    const subject = u.searchParams.get("subject"), grade = Number(u.searchParams.get("grade")), skill = u.searchParams.get("skill");
+    const q = n => ({ prompt: `Sample check question ${n} about ${skill}?`, correct: `Right answer ${n}`, wrong: [`Wrong A${n}`, `Wrong B${n}`, `Wrong C${n}`], explanation: "Sample explanation." });
+    const content = { title: skill, whyItMatters: "Sample reason.", explanation: ["Sample explanation paragraph."], examples: [{ problem: "Sample problem", steps: ["Step one", "Step two"], answer: "Sample answer" }], commonMistake: "Sample mistake.", tryIt: q(0), checkQuestions: [1, 2, 3, 4, 5].map(q) };
+    const lesson = await prisma.lesson.upsert({ where: { subject_grade_skill_variant: { subject, grade, skill, variant: 1 } }, create: { subject, grade, skill, variant: 1, content }, update: { content, active: true } });
+    await prisma.question.deleteMany({ where: { key: { startsWith: `lesson-${lesson.id}-` } } });
+    await prisma.question.createMany({ data: content.checkQuestions.map((c, n) => ({ key: `lesson-${lesson.id}-${n}`, subject, grade, strand: "Sample", skill, prompt: c.prompt, correct: c.correct, wrong1: c.wrong[0], wrong2: c.wrong[1], wrong3: c.wrong[2], explanation: c.explanation, active: false, source: "lesson" })) });
+  };
+  const runCheck = async right => {
+    await S.page.click("button:has-text('Start the check')");
+    await S.page.waitForURL(/\/student\/practice\//);
+    for (let i = 0; i < 5; i++) {
+      const opt = right ? S.page.locator(".opt:has-text('Right answer')") : S.page.locator(".opt:has-text('Wrong A')");
+      await opt.first().click();
+      await S.page.click("button:has-text('Check')");
+      await S.page.waitForSelector(".flash[role=status]");
+      await S.page.click("button.primary");
+    }
+    await S.page.waitForSelector("h2:has-text('Mastered'), h2:has-text('Not yet')", { timeout: 15000 });
+  };
+  await seed(hrefs[0]);
+  await S.page.goto(`${BASE}${hrefs[0]}`);
+  ok(await S.page.locator("text=Worked example 1").count() === 1, "lesson shows worked examples");
+  await S.page.locator(".opt:has-text('Right answer 0')").click();
+  ok(await S.page.locator("text=Yes, that's it.").count() === 1, "try-it question gives instant feedback");
+  await shot(S.page, "18-lesson");
+  await runCheck(false);
+  ok(await S.page.locator("h2:has-text('Not yet')").count() === 1, "missing the check says Not yet");
+  await S.page.click("a:has-text('Learn it another way')");
+  await S.page.waitForURL(/\/student\/learn/);
+  ok(await S.page.locator("text=Last check: 0 of 5").count() === 1, "reteach page shows the last check and asks for a new lesson");
+  if (hrefs[1]) {
+    await seed(hrefs[1]);
+    await S.page.goto(`${BASE}${hrefs[1]}`);
+    await runCheck(true);
+    ok(await S.page.locator("h2:has-text('Mastered')").count() === 1, "passing the check masters the skill");
+    await shot(S.page, "19-mastered", false);
+    await S.page.goto(`${BASE}/student`);
+    const stillThere = await S.page.locator(`a[href="${hrefs[1]}"]`).count();
+    ok(stillThere === 0, "mastered skill leaves the Today plan");
+  }
+  await prisma.$disconnect();
+}
 // practice set
 const practiseButtons = S.page.locator("button:has-text('Practise now')");
 ok(await practiseButtons.count() > 0, "Today plan has Practise now buttons");
@@ -182,7 +234,7 @@ ok(true, "practice set completes with a score");
 await S.page.goto(`${BASE}/student`);
 const meLink = await S.page.locator("a:has-text('My plan')").getAttribute("href");
 await S.page.goto(`${BASE}${meLink}`);
-ok(await S.page.locator("text=Practice, last 7 days").count() > 0 && await S.page.locator("text=1 set").count() > 0, "practice shows on the student's plan page");
+ok(await S.page.locator("text=Practice, last 7 days").count() > 0 && await S.page.locator("text=/\\d+ sets? ·/").count() > 0, "practice shows on the student's plan page");
 
 /* 6. parent joins with the family code */
 const F = await session("parent");

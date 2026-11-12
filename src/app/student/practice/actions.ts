@@ -7,6 +7,7 @@ import { toStoredQuestion, type Answer, type StoredQuestion } from "@/lib/assess
 import { lookupFor } from "@/lib/questions";
 import { pickItems } from "@/lib/runner";
 import { explain, tutorConfigured } from "@/lib/tutor";
+import { MASTERY_PASS, MASTERY_SET } from "@/lib/lessons";
 
 const SET_SIZE = 5;
 
@@ -51,6 +52,7 @@ export async function answerPractice(sessionId: string, index: number, choice: n
   const done = answers.every(a => a !== null);
   const correct = answers.filter(a => a === 0).length;
   await db.practiceSession.update({ where: { id: s.id }, data: { answers, correct, ...(done ? { completedAt: new Date() } : {}) } });
+  if (done && s.kind === "mastery") await recordMastery(user.id, s.subject, s.grade, s.skill, correct, questions.length);
   return {
     ok: answers[index] === 0,
     correctText: item?.choices[0] ?? "",
@@ -76,4 +78,17 @@ export async function explainPractice(sessionId: string, index: number): Promise
   const r = await explain(item, chosen, user.grade ?? 0, user.id);
   if (r.ok) return { text: r.text };
   return { error: r.reason === "limit" ? "You've reached today's tutor limit. Ask your coach, or try again tomorrow." : "The tutor couldn't answer right now. Try again in a minute." };
+}
+
+/** After a mastery check: count the attempt, and mark the skill mastered at 4 of 5 (80%) or better. */
+async function recordMastery(studentId: string, subject: string, grade: number, skill: string, correct: number, total: number) {
+  const passed = total > 0 && correct >= Math.ceil(total * (MASTERY_PASS / MASTERY_SET));
+  const key = { studentId_subject_grade_skill: { studentId, subject, grade, skill } };
+  const prev = await db.skillProgress.findUnique({ where: key });
+  if (prev?.state === "MASTERED") return;
+  await db.skillProgress.upsert({
+    where: key,
+    create: { studentId, subject, grade, skill, attempts: 1, lastScore: correct, lastTotal: total, state: passed ? "MASTERED" : "LEARNING", masteredAt: passed ? new Date() : null },
+    update: { attempts: { increment: 1 }, lastScore: correct, lastTotal: total, ...(passed ? { state: "MASTERED", masteredAt: new Date() } : {}) },
+  });
 }
