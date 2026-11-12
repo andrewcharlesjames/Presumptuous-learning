@@ -64,6 +64,13 @@ model School {
   aiTutor    Boolean  @default(false) // school has opted in to AI explanations for students
   launchDay  DateTime? @db.Date // Launch Day for student projects (May)
   aiNeedsConsent Boolean @default(true) // AI features that send a student's own writing need a parent's AI consent first
+  plan           String    @default("PILOT") // PILOT or ACTIVE
+  seats          Int       @default(50) // students the licence covers
+  licenceStart   DateTime? @db.Date
+  licenceEnd     DateTime? @db.Date
+  priceCents     Int       @default(0) // per student per year
+  billingEmail   String    @default("")
+  invoices       Invoice[]
   createdAt  DateTime @default(now())
 
   users      User[]
@@ -564,4 +571,54 @@ model DeletionRequest {
   outcome     String    @default("") // "deleted" or "declined"
 
   @@index([schoolId, resolvedAt])
+}
+
+// ---------------- Phase 8: licences, invoices, leads ----------------
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  VOID
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  schoolId       String
+  school         School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  number         String        @unique // PL-2026-0001
+  issuedAt       DateTime      @default(now())
+  dueDate        DateTime      @db.Date
+  periodStart    DateTime      @db.Date
+  periodEnd      DateTime      @db.Date
+  seats          Int
+  unitPriceCents Int
+  subtotalCents  Int
+  taxCents       Int // Ontario HST 13%
+  totalCents     Int
+  status         InvoiceStatus @default(UNPAID)
+  paidAt         DateTime?
+  notes          String        @default("")
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  CLOSED
+}
+
+/// A school asking for a pilot, from the public website.
+model Lead {
+  id         String     @id @default(cuid())
+  name       String
+  role       String
+  schoolName String
+  email      String
+  phone      String     @default("")
+  students   Int?
+  grades     String     @default("")
+  message    String     @default("")
+  status     LeadStatus @default(NEW)
+  schoolId   String?
+  createdAt  DateTime   @default(now())
 }

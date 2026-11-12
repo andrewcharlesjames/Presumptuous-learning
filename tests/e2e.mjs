@@ -476,6 +476,110 @@ ok(overflow <= 390, `phone layout has no sideways scroll (${overflow}px)`);
 await shot(pp, "15-phone-dark-student");
 
 
+/* 8b. Phase 8: pilot requests, licences, seats, invoices, richer demo */
+{
+  const school = `Pilot Test School ${Date.now()}`;
+  const leadEmail = `lead.${Date.now()}@example.com`;
+  await anon.page.goto(`${BASE}/`);
+  ok(await anon.page.locator("h1:has-text('Overreaching is how students get ahead.')").count() === 1, "home page headline");
+  ok(await anon.page.locator("#how .steps li").count() === 5, "home page shows the five steps");
+  await anon.page.fill("#lead-name", "Dana Whitfield"); await anon.page.fill("#lead-role", "Principal");
+  await anon.page.fill("#lead-school", school); await anon.page.fill("#lead-email", leadEmail);
+  await anon.page.fill("#lead-students", "120"); await anon.page.fill("#lead-grades", "K-8");
+  await anon.page.click("button:has-text('Request a pilot')");
+  await anon.page.waitForURL(/pilot=sent/);
+  ok(await anon.page.locator(".flash:has-text('in touch')").count() === 1, "pilot request form thanks the visitor");
+  // a bot filling the hidden field is told "thanks" but nothing is saved
+  await anon.page.goto(`${BASE}/`);
+  await anon.page.fill("#lead-name", "Spam Bot"); await anon.page.fill("#lead-school", "Spam School Bot"); await anon.page.fill("#lead-email", "bot@example.com");
+  await anon.page.evaluate(() => { document.querySelector("input[name=website]").value = "http://spam.example"; });
+  await anon.page.click("button:has-text('Request a pilot')");
+  await anon.page.waitForURL(/pilot=sent/);
+  await A.page.goto(`${BASE}/admin`);
+  ok(await A.page.locator(".flash:has-text('new pilot request')").count() === 1, "admin sees a new pilot request notice");
+  await A.page.goto(`${BASE}/admin/leads`);
+  ok(await A.page.locator(`h2:has-text("${school}")`).count() === 1, "lead appears on Pilot requests");
+  ok(await A.page.locator("h2:has-text('Spam School Bot')").count() === 0, "honeypot submission was not saved");
+  await shot(A.page, "40-admin-leads");
+  const card = A.page.locator(".lead", { has: A.page.locator(`h2:has-text("${school}")`) });
+  await card.locator("summary:has-text('Start a pilot')").click();
+  await card.locator("button:has-text('Create pilot school')").click();
+  const pilot = await secrets(A.page, "-day pilot");
+  ok(!!pilot["Temporary password"] && (await flashText(A.page, "-day pilot")).includes("90-day pilot for 120 students"), "admin starts a 90-day pilot from the lead");
+
+  // licence for the real school: seats, invoice, paid
+  await A.page.goto(`${BASE}/admin`);
+  await A.page.locator("a:has-text('Maple Grove School')").first().click();
+  await A.page.waitForURL(/\/admin\/schools\/.+/);
+  const schoolUrl = A.page.url();
+  ok(await A.page.locator("h2:has-text('Licence')").count() === 1, "school licence page opens");
+  await A.page.selectOption("#plan", "ACTIVE");
+  await A.page.fill("#seats", "1");
+  await A.page.fill("#price", "45");
+  await A.page.click("button:has-text('Save licence')");
+  ok((await flashText(A.page, "Licence saved")).includes("Licence saved"), "admin saves plan, seats and price");
+  await A.page.fill("#invSeats", "120"); await A.page.fill("#invPrice", "45");
+  await A.page.click("button:has-text('Create invoice')");
+  ok((await flashText(A.page, "Invoice PL-")).includes("$6,102.00"), "invoice total adds 13% HST (120 × $45 → $6,102.00)");
+  await shot(A.page, "41-admin-licence");
+  await A.page.locator("a:has-text('PL-')").first().click();
+  await A.page.waitForURL(/\/invoices\/.+/);
+  const invoiceUrl = A.page.url();
+  ok(await A.page.locator("text=HST (13%)").count() === 1, "printable invoice shows HST");
+  await shot(A.page, "42-invoice");
+
+  // seat limit: adding a student with all seats used is refused, and the admin is warned
+  await R.page.goto(`${BASE}/school/people`);
+  await R.page.fill("#s-first", "Over"); await R.page.fill("#s-last", "Limit");
+  await R.page.selectOption("#s-grade", "4");
+  await R.page.click("button:has-text('Add student')");
+  ok((await flashText(R.page, "licence covers")).includes("licence covers 1"), "adding a student past the seat limit is refused");
+  ok(await R.page.locator(".licence-warn:has-text('licence covers 1')").count() === 1, "school admin sees the over-seats banner");
+  await R.page.goto(`${BASE}/school/billing`);
+  ok(await R.page.locator("h1:has-text('Plan & billing')").count() === 1 && await R.page.locator("a:has-text('PL-')").count() >= 1, "school admin sees plan and invoices");
+  await shot(R.page, "43-school-billing");
+  ok((await R.page.goto(invoiceUrl)).status() === 200, "school admin opens their invoice");
+  ok((await P.page.goto(invoiceUrl)).status() === 404, "another school's admin cannot open the invoice");
+  ok((await C.page.goto(invoiceUrl)).url().includes("/invoices/") === false, "a coach cannot open invoices");
+  // mark paid, restore seats, and set an end date close by
+  await A.page.goto(schoolUrl);
+  await A.page.click("button:has-text('Mark paid')");
+  ok((await flashText(A.page, "marked paid")).includes("marked paid"), "admin marks the invoice paid");
+  await A.page.fill("#seats", "50");
+  const soon = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
+  await A.page.fill("#licenceEnd", soon);
+  await A.page.click("button:has-text('Save licence')");
+  await flashText(A.page, "Licence saved");
+  await R.page.goto(`${BASE}/school`);
+  ok(await R.page.locator(".licence-warn:has-text('ends in')").count() === 1, "school admin sees the renewal banner");
+  await A.page.goto(schoolUrl);
+  await A.page.fill("#licenceEnd", new Date(Date.now() + 300 * 86400000).toISOString().slice(0, 10));
+  await A.page.click("button:has-text('Save licence')");
+  await flashText(A.page, "Licence saved");
+
+  // the richer demo: streaks, mastery, projects, studio
+  const DS = await session("demostudent");
+  const [dsUser, dsPw] = demo["Student (any demo student)"].split(" / ");
+  await DS.page.goto(`${BASE}/login`);
+  await DS.page.click("button:has-text('Student')");
+  await DS.page.fill("#code", demo["School code"]); await DS.page.fill("#username", dsUser); await DS.page.fill("#spassword", dsPw);
+  await DS.page.click("button:has-text('Sign in')");
+  await DS.page.waitForURL(/\/student$/);
+  const streakN = Number(await DS.page.locator("text=-day streak >> b").first().innerText().catch(() => "0"));
+  ok(streakN > 0, `demo student has a streak (${streakN} days)`);
+  await shot(DS.page, "44-demo-student-today");
+  await DS.page.goto(`${BASE}/student/projects`);
+  ok(await DS.page.locator("text=Paw Patrol Walks").count() >= 1, "demo student has a Life Skills Project under way");
+  await shot(DS.page, "45-demo-projects");
+  await DS.page.goto(`${BASE}/student/studio`);
+  ok(await DS.page.locator("text=Snow Day Engine").count() >= 1, "demo student has a poem in the studio");
+  await DC.page.goto(`${BASE}/coach`);
+  ok(await DC.page.locator("h2:has-text('Needs attention')").count() === 1, "demo coach sees Needs attention");
+  await shot(DC.page, "46-demo-coach");
+  await P.page.goto(`${BASE}/school`);
+  await shot(P.page, "47-demo-overview");
+}
+
 /* 9. accessibility: axe-core (WCAG 2.1 A and AA) on the main screens for each role */
 {
   const axePath = new URL("../node_modules/axe-core/axe.min.js", import.meta.url).pathname;
@@ -483,6 +587,7 @@ await shot(pp, "15-phone-dark-student");
     [anon, "/"], [anon, "/login"], [anon, "/join"], [anon, "/privacy"],
     [S, "/student"], [S, "/student/studio"], [S, "/student/projects"], [S, studentLinkSelf ?? "/student"],
     [C, "/coach"], [P, "/school"], [P, "/school/people"], [P, "/school/privacy"], [P, "/school/settings"], [F, "/parent"], [F, "/showcase"],
+    [A, "/admin/leads"], [R, "/school/billing"],
   ];
   const found = new Map();
   for (const [sess, path] of pages) {

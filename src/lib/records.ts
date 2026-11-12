@@ -3,7 +3,7 @@ import type { School } from "@prisma/client";
 import { db } from "./db";
 import { scoreAssessment, type Answer, type StoredQuestion, type StoredResult, type Status } from "./assessment";
 import type { SubjectId } from "./bank";
-import { isoDate, todayIn } from "./dates";
+import { addDays, isoDate, todayIn } from "./dates";
 import { familyCode, hashPassword, shortCode } from "./passwords";
 import { DEFAULT_DAY, ontarioYear } from "./templates";
 import { schoolYearOf } from "./dates";
@@ -85,8 +85,9 @@ export async function uniqueUsername(schoolId: string, first: string, last: stri
 
 /** Create a school with the default day, this year's Ontario calendar, and its first school admin. */
 export async function createSchool(input: {
-  name: string; code: string; admin: { firstName: string; lastName: string; email: string; password: string }; isDemo?: boolean;
+  name: string; code: string; admin: { firstName: string; lastName: string; email: string; password: string }; isDemo?: boolean; seats?: number;
 }) {
+  const today = todayIn("America/Toronto");
   const year = ontarioYear(schoolYearOf(todayIn("America/Toronto")));
   const passwordHash = await hashPassword(input.admin.password);
   return db.school.create({
@@ -94,6 +95,7 @@ export async function createSchool(input: {
       name: input.name,
       code: input.code,
       isDemo: input.isDemo ?? false,
+      plan: "PILOT", seats: input.seats ?? 50, licenceStart: today, licenceEnd: addDays(today, 90), billingEmail: input.admin.email.toLowerCase(),
       yearStart: year.yearStart,
       yearEnd: year.yearEnd,
       blocks: { create: DEFAULT_DAY.map((b, position) => ({ ...b, position })) },

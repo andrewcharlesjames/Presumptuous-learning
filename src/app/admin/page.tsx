@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
@@ -9,24 +10,26 @@ export const metadata = { title: "Schools" };
 export default async function AdminPage() {
   const user = await requireUser(["PLATFORM_ADMIN"]);
   const schools = await db.school.findMany({ orderBy: { createdAt: "desc" }, include: { _count: { select: { users: true, classes: true } } } });
-  const students = await db.user.groupBy({ by: ["schoolId"], where: { role: "STUDENT" }, _count: true });
+  const students = await db.user.groupBy({ by: ["schoolId"], where: { role: "STUDENT", active: true }, _count: true });
   const studentCount = new Map(students.map(s => [s.schoolId, s._count]));
+  const newLeads = await db.lead.count({ where: { status: "NEW" } });
   return (
     <Shell user={user}>
+      {newLeads > 0 && <p className="flash ok"><span>{newLeads} new pilot request{newLeads === 1 ? "" : "s"}. <Link href="/admin/leads">Review</Link></span></p>}
       <div className="spread">
         <div><span className="eyebrow">Platform</span><h1>Schools</h1></div>
         <form action={createDemoAction}><button className="btn">Create a demo school</button></form>
       </div>
       {schools.length ? (
         <div className="tablewrap"><table>
-          <thead><tr><th>School</th><th>Code</th><th>Students</th><th>Classes</th><th>School year</th><th></th></tr></thead>
+          <thead><tr><th>School</th><th>Code</th><th>Students</th><th>Classes</th><th>Licence</th><th></th></tr></thead>
           <tbody>{schools.map(s => (
             <tr key={s.id}>
-              <td><b>{s.name}</b>{s.isDemo && <span className="chip" style={{ marginLeft: 8 }}>Demo</span>}</td>
+              <td><Link href={`/admin/schools/${s.id}`}><b>{s.name}</b></Link>{s.isDemo && <span className="chip" style={{ marginLeft: 8 }}>Demo</span>}</td>
               <td className="num">{s.code}</td>
-              <td className="num">{studentCount.get(s.id) ?? 0}</td>
+              <td className="num">{studentCount.get(s.id) ?? 0} / {s.seats}</td>
               <td className="num">{s._count.classes}</td>
-              <td className="small muted">{fmtDate(s.yearStart, { month: "short", day: "numeric", year: "numeric" })} – {fmtDate(s.yearEnd, { month: "short", day: "numeric", year: "numeric" })}</td>
+              <td className="small">{s.plan === "ACTIVE" ? "Active" : "Pilot"}<span className="muted">{s.licenceEnd ? ` · ends ${fmtDate(s.licenceEnd, { month: "short", day: "numeric", year: "numeric" })}` : ""}</span></td>
               <td>{s.isDemo && <form action={deleteDemoAction}><input type="hidden" name="id" value={s.id} /><button className="btn small danger">Delete demo</button></form>}</td>
             </tr>
           ))}</tbody>

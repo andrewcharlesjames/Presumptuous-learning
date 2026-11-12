@@ -63,7 +63,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .linkbtn { background: none; border: 0; padding: 0; color: var(--accent-text); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 label.field, .field { display: grid; gap: 6px; font-weight: 600; font-size: .92rem; min-width: 0; }
 .field .hint { font-weight: 400; color: var(--muted); font-size: .82rem; }
-input[type=text], input[type=email], input[type=password], input[type=date], input[type=time], input[type=number], select, textarea {
+input[type=text], input[type=email], input[type=tel], input[type=search], input[type=password], input[type=date], input[type=time], input[type=number], select, textarea {
   width: 100%; padding: 10px 12px; border-radius: var(--r); border: 1px solid var(--line); background: var(--paper); color: var(--ink); font-weight: 500; font-size: .95rem;
 }
 textarea { min-height: 120px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; }
@@ -170,3 +170,22 @@ details.items summary { cursor: pointer; color: var(--muted); font-size: .86rem;
   .card { padding: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* marketing site */
+.mkt .navlink { color: var(--ink); text-decoration: none; font-weight: 600; font-size: .92rem; padding: 6px 8px; }
+.mkt .navlink:hover { color: var(--accent-text); }
+.mkt section h2 { font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 800; }
+.steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 6px; align-content: start; }
+.steps p { color: var(--muted); font-size: .92rem; }
+.stepn { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 800; display: grid; place-items: center; }
+.ticks { margin: 0; padding-left: 18px; color: var(--muted); font-size: .92rem; display: grid; gap: 6px; }
+.band { padding: 28px; border-radius: 14px; background: var(--sunk); }
+.pricing { border-top: 4px solid var(--accent); }
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+@media (max-width: 960px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .steps, .grid4 { grid-template-columns: 1fr; } .band { padding: 18px; } .mkt .navlink { display: none; } }
+@media print {
+  :root { --paper: #fff; --surface: #fff; --sunk: #f2f2f0; --ink: #111; --muted: #555; --line: #ccc; --accent-text: #8A5800; color-scheme: light; }
+  .noprint, .topbar, footer { display: none !important; }
+  .invoice .card { border: 0; box-shadow: none; background: #fff; }
+}

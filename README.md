@@ -71,6 +71,14 @@ src/lib/templates.ts      default school day and Ontario calendar template
 src/app/                  pages by role: admin/, school/, coach/, parent/, student/, students/[id]
 ```
 
+## Phase 8: sales and growth
+
+- **Marketing site** at `/`: how it works, a view for each role, the school day, projects and Launch Day, privacy, pricing, and a **Request a pilot** form (spam honeypot and rate limit).
+- **Pilot requests** (Platform admin → Pilot requests): mark contacted or closed, or **Start a pilot**, which creates the school with a 90-day pilot licence and its admin account.
+- **Licences** (Platform admin → click a school): plan (Pilot or Active), seats, start and end dates, price per student per year, billing email. Adding or importing students past the seat limit is refused. School admins see a banner 30 days before the licence ends, after it ends, or when they're over their seats; coaches see one only once it has ended. Nothing is locked when a licence ends.
+- **Invoices**: created by the platform admin with 13% HST, numbered PL-year-0001; mark paid, unpaid or void. School admins see them under **Billing** and can print or save each as a PDF. Set `BILLING_NAME` and `HST_NUMBER` in Railway to show them on invoices.
+- **Richer demo school**: two months of history, daily check-ins and reflections with streaks, practice, mastered skills, a stuck student for "Needs attention", poems with coach feedback, Life Skills and Purpose Projects at different stages, assignments, notes and consents.
+
 ## Phase 7: privacy and school readiness
 
 - **Audit log** (School admin → Privacy): every view of a student's records by staff or parents, plus exports, deletions, password resets, consent and settings changes.

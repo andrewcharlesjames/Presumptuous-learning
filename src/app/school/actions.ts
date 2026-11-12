@@ -13,6 +13,7 @@ import { parseIsoDate, schoolYearOf } from "@/lib/dates";
 import { DEFAULT_DAY, ontarioYear, type BlockKindName, type CalendarKindName } from "@/lib/templates";
 import { parseCsv } from "@/lib/csv";
 import { audit } from "@/lib/audit";
+import { students } from "@/lib/licence";
 
 const admin = () => requireSchoolUser(["SCHOOL_ADMIN"]);
 const back = async (path: string, tone: "ok" | "error", text: string, secret?: { label: string; value: string }[]) => {
@@ -37,6 +38,8 @@ export async function addStudent(form: FormData) {
   const p = studentSchema.safeParse(Object.fromEntries(form));
   if (!p.success) return back("/school/people", "error", "Add a first name, last name and grade.");
   const d = p.data;
+  const used = await db.user.count({ where: { schoolId: school.id, role: "STUDENT", active: true } });
+  if (used + 1 > school.seats) return back("/school/people", "error", `Your licence covers ${students(school.seats)} and you have ${used}. Deactivate a student or contact Presumptuous Learning to add seats.`);
   const username = await uniqueUsername(school.id, d.firstName, d.lastName, d.username);
   const password = kidPassword();
   const cls = d.classId ? await db.class.findFirst({ where: { id: d.classId, schoolId: school.id } }) : null;
@@ -64,6 +67,8 @@ export async function importStudents(form: FormData) {
   const iF = col(["first_name", "first", "firstname"]), iL = col(["last_name", "last", "lastname"]), iG = col(["grade"]);
   const iU = col(["username", "user"]), iC = col(["class", "class_name"]);
   if (iF < 0 || iL < 0 || iG < 0) return back("/school/people", "error", "The header row needs first_name, last_name and grade columns.");
+  const used = await db.user.count({ where: { schoolId: school.id, role: "STUDENT", active: true } });
+  if (used + rows.length - 1 > school.seats) return back("/school/people", "error", `That list has ${students(rows.length - 1)}. Your licence covers ${school.seats} and you have ${used}, so there's room for ${Math.max(0, school.seats - used)}. Contact Presumptuous Learning to add seats.`);
   const classes = await db.class.findMany({ where: { schoolId: school.id } });
   const byName = new Map(classes.map(c => [c.name.toLowerCase(), c.id]));
   const password = kidPassword();
@@ -138,6 +143,10 @@ export async function setActive(form: FormData) {
   const active = form.get("active") === "true";
   const target = await db.user.findFirst({ where: { id, schoolId: school.id } });
   if (!target || target.id === user.id) return back("/school/people", "error", "You can't change that account.");
+  if (active && target.role === "STUDENT") {
+    const used = await db.user.count({ where: { schoolId: school.id, role: "STUDENT", active: true } });
+    if (used + 1 > school.seats) return back("/school/people", "error", `Your licence covers ${students(school.seats)} and all seats are in use.`);
+  }
   await db.user.update({ where: { id }, data: { active } });
   if (!active) await db.session.deleteMany({ where: { userId: id } });
   await audit(user, active ? "account.reactivate" : "account.deactivate", { studentId: target.role === "STUDENT" ? id : undefined, detail: `${target.firstName} ${target.lastName}` });
