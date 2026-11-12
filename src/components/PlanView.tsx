@@ -1,4 +1,5 @@
 "use client";
+import { Info } from "@/components/Info";
 import { useState } from "react";
 
 /** Serializable plan shape passed from the server. */
@@ -24,7 +25,7 @@ export function PlanView({ plan }: { plan: PlanData }) {
   return (
     <section className="stack">
       <div className="spread">
-        <div><span className="eyebrow">The plan</span><h2>Built to finish above grade level</h2></div>
+        <div><span className="eyebrow">The plan</span><h2>Built to finish above grade level<Info label="The plan">{"Made from the placement assessment. Today: what to work on and for how long. This month: which subjects get sessions each week (subjects that need the most help get the most). This year: the path to above grade level in every subject. Labels: Repair = catch up on earlier skills, Secure = practice at grade level, Stretch = work from the next grade up."}</Info></h2></div>
         <div className="tabs" role="tablist">
           {(["today", "month", "year"] as const).map(t => (
             <button key={t} type="button" role="tab" className="tab" aria-selected={tab === t} onClick={() => setTab(t)}>

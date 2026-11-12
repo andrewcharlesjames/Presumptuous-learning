@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -52,7 +53,7 @@ export default async function PeoplePage() {
 
         <div className="grid2">
           <form action={addStudent} className="card">
-            <h3>Add a student</h3>
+            <h3>Add a student<Info label="Adding a student">{"You'll get their username, an easy password and a family code to send home. Students sign in with the school code, username and password. Each active student uses a licence seat."}</Info></h3>
             <div className="grid2">
               <label className="field">First name<input id="s-first" name="firstName" type="text" required /></label>
               <label className="field">Last name<input id="s-last" name="lastName" type="text" required /></label>
@@ -66,7 +67,7 @@ export default async function PeoplePage() {
             <p className="small muted">You&apos;ll see the student&apos;s password and their family code for parents once.</p>
           </form>
           <form action={importStudents} className="card">
-            <h3>Import a class list</h3>
+            <h3>Import a class list<Info label="Importing">{"Paste a CSV with columns first_name, last_name, grade (K or 0 to 12), and optionally username and class. Rows with mistakes are skipped and listed. New usernames, passwords and family codes are shown once, straight after, so copy them then."}</Info></h3>
             <p className="small muted">Paste from a spreadsheet saved as CSV. Required columns: first_name, last_name, grade (K or 1–12). Optional: username, class (must match a class name).</p>
             <label className="field">CSV<textarea id="csv" name="csv" placeholder={"first_name,last_name,grade,class\nAmira,Khan,3,Junior Studio A\nLiam,Tremblay,K,"} /></label>
             <div><button className="btn">Import students</button></div>
@@ -92,7 +93,7 @@ export default async function PeoplePage() {
           ))}</tbody>
         </table></div>
         <form action={addStaff} className="card">
-          <h3>Add a {coachT.toLowerCase()} or admin</h3>
+          <h3>Add a {coachT.toLowerCase()} or admin<Info label="Adding staff">{"Coaches see their own classes; school admins see everything at this school. They sign in with email and the temporary password shown once."}</Info></h3>
           <div className="form-grid">
             <label className="field">First name<input id="t-first" name="firstName" type="text" required /></label>
             <label className="field">Last name<input id="t-last" name="lastName" type="text" required /></label>
@@ -104,7 +105,7 @@ export default async function PeoplePage() {
       </section>
 
       <section className="stack">
-        <h2>Parents <span className="muted num">({parents.length})</span></h2>
+        <h2>Parents <span className="muted num">({parents.length})</span><Info label="Parents">{"Parents create their own accounts with a child's family code at the join page. They only see their own children."}</Info></h2>
         <p className="muted small">Parents create their own accounts at <b>/join</b> using a student&apos;s family code (shown in the students table). One parent can link several children.</p>
         {parents.length ? (
           <div className="tablewrap"><table>

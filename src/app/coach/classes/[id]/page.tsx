@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSchoolUser } from "@/lib/auth";
@@ -74,7 +75,7 @@ export default async function ClassView({ params, searchParams }: { params: Prom
 
       {date.getTime() === today.getTime() && info.schoolDay && students.length > 0 && (
         <section className="stack">
-          <div className="spread"><h2>Today in class</h2>
+          <div className="spread"><h2>Today in class<Info label="Today in class">{"Who has checked in, how they feel, what they've learned today and whether they reflected. Updates as students work."}</Info></h2>
             <span className="small muted">{logs.filter(l => l.checkedInAt).length} of {students.length} checked in · {logs.filter(l => l.reflectedAt).length} reflected</span></div>
           {lowMood.length > 0 && (
             <div className="flash error"><span>{lowMood.length === 1 ? "1 student" : `${lowMood.length} students`} checked in feeling Low or Rough: {lowMood.map(l => students.find(s => s.id === l.studentId)?.firstName).filter(Boolean).join(", ")}. A quick check-in from you may help.</span></div>
@@ -100,7 +101,7 @@ export default async function ClassView({ params, searchParams }: { params: Prom
       )}
 
       <section className="stack">
-        <h2>Assignments</h2>
+        <h2>Assignments<Info label="Assignments">{"Set a skill to master, a practice set, or a retake of the assessment for one student or the whole class. It shows on the student's Today page and ticks off by itself when they finish."}</Info></h2>
         {classAssignments.length ? (
           <div className="tablewrap"><table>
             <thead><tr><th>Assignment</th><th>Due</th><th>Done</th><th>Still to do</th><th></th></tr></thead>
@@ -125,7 +126,7 @@ export default async function ClassView({ params, searchParams }: { params: Prom
       </section>
 
       <section className="stack">
-        <h2>Where each student is</h2>
+        <h2>Where each student is<Info label="Where each student is">{"Each student's placement by subject (red below, yellow at, green above grade level), streak and practice. Click a name for the full plan, notes and next-level skills."}</Info></h2>
         {students.length ? (
           <div className="tablewrap"><table>
             <thead><tr><th>Student</th><th>Grade</th><th>Placement by subject (level 1–4)</th><th>Last assessed</th><th>Skills</th><th>Practice (7 days)</th><th>Username</th><th></th></tr></thead>
@@ -153,7 +154,7 @@ export default async function ClassView({ params, searchParams }: { params: Prom
 
       <section className="stack">
         <div className="spread">
-          <div><h2>Attendance</h2><p className="muted small">{fmtLong(date)}{info.schoolDay ? "" : ` · ${info.reason}`}</p></div>
+          <div><h2>Attendance<Info label="Attendance">{"Mark each student present, late or absent for the day shown and save. Parents and the school admin see attendance."}</Info></h2><p className="muted small">{fmtLong(date)}{info.schoolDay ? "" : ` · ${info.reason}`}</p></div>
           <div className="row">
             <Link className="btn small" href={`${returnTo}?date=${isoDate(addDays(date, -1))}`}>← Previous day</Link>
             {date < today && <Link className="btn small" href={`${returnTo}?date=${isoDate(addDays(date, 1))}`}>Next day →</Link>}

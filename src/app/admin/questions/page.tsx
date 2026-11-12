@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -44,7 +45,7 @@ export default async function QuestionBank({ searchParams }: { searchParams: Pro
       </div>
 
       <section className="stack">
-        <h2>Coverage</h2>
+        <h2>Coverage<Info label="Coverage">{"How many active questions each subject has at each grade. Thin cells make placement less accurate; add questions or use AI drafting there. Math also has generators that make fresh questions every time."}</Info></h2>
         <p className="muted small">Active questions per subject and grade. Aim for 10 or more in each cell so retakes and practice don&apos;t repeat. Red: fewer than 6. ✦ = math generators also cover this grade. Select a cell to see its questions.</p>
         <div className="tablewrap"><table>
           <thead><tr><th>Subject</th>{POOLS.map(g => <th key={g} className="num">{g === 13 ? "12+" : gradeShort(g)}</th>)}</tr></thead>

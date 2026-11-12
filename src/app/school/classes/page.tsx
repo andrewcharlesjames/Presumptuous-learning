@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -15,7 +16,7 @@ export default async function ClassesPage() {
   });
   return (
     <Shell user={user}>
-      <div><span className="eyebrow">{school.name}</span><h1>Classes</h1></div>
+      <div><span className="eyebrow">{school.name}</span><h1>Classes<Info label="Classes">{"A class groups students with one or more coaches. Combined grades are fine. Coaches only see students in their classes."}</Info></h1></div>
       {classes.length ? (
         <div className="tablewrap"><table>
           <thead><tr><th>Class</th><th>Grades</th><th>{plural(school.coachTitle)}</th><th>Students</th></tr></thead>

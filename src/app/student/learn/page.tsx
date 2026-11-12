@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireSchoolUser } from "@/lib/auth";
@@ -31,7 +32,7 @@ export default async function LearnPage({ searchParams }: { searchParams: Promis
       <div>
         <Link href="/student" className="small">← Today</Link>
         <span className="eyebrow" style={{ display: "block", marginTop: 10 }}>{subjectName} · {gradeName(grade)} skill</span>
-        <h1 style={{ fontSize: "clamp(1.6rem,4vw,2.3rem)" }}>{skill}</h1>
+        <h1 style={{ fontSize: "clamp(1.6rem,4vw,2.3rem)" }}>{skill}<Info label="Lessons">{"Read the lesson and try the examples, then take the 5-question mastery check. Get 4 right and you've mastered it. If not, you'll get the lesson again, explained a different way. After 3 tries your coach is told so they can help."}</Info></h1>
       </div>
 
       <ol className="row small muted" style={{ listStyle: "none", padding: 0, margin: 0, gap: 18 }} aria-label="Steps">

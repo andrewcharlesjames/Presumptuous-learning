@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import { requireSchoolUser } from "@/lib/auth";
 import { Shell } from "@/components/Shell";
 import { PasswordForm } from "@/components/PasswordForm";
@@ -12,7 +13,7 @@ export default async function SettingsPage() {
   const { user, school } = await requireSchoolUser(["SCHOOL_ADMIN"]);
   return (
     <Shell user={user}>
-      <div><span className="eyebrow">{school.name}</span><h1>Settings</h1></div>
+      <div><span className="eyebrow">{school.name}</span><h1>Settings<Info label="Settings">{"School-wide choices: name, what staff are called, time zone, Launch Day, and the AI features. Changes apply to everyone at once."}</Info></h1></div>
       <form action={saveSettings} className="card">
         <h2>School</h2>
         <div className="form-grid">

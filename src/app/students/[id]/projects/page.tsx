@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { auditView } from "@/lib/audit";
 import { notFound, redirect } from "next/navigation";
@@ -25,7 +26,7 @@ export default async function StudentProjects({ params }: { params: Promise<{ id
   const today = todayIn(student.school.timezone);
   return (
     <Shell user={viewer}>
-      <div><Link href={`/students/${id}`} className="small">← {student.firstName}&apos;s plan</Link><h1>{student.firstName}&apos;s projects</h1></div>
+      <div><Link href={`/students/${id}`} className="small">← {student.firstName}&apos;s plan</Link><h1>{student.firstName}&apos;s projects<Info label="Projects">{"The Life Skills Project (a business) and Purpose Project (community impact) for this school year, with each step's status. Coaches review each step; everyone presents on Launch Day in May."}</Info></h1></div>
       {projects.length ? projects.map(p => (
         <section key={p.id} className="stack">
           <div><span className="eyebrow">{PROJECT_LABEL[p.type]} · {p.schoolYear}–{String(p.schoolYear + 1).slice(2)}</span>

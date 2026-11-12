@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -43,7 +44,7 @@ export default async function SchoolOverview() {
   return (
     <Shell user={user}>
       <div className="spread">
-        <div><span className="eyebrow">{school.name} · code {school.code}</span><h1>School overview</h1></div>
+        <div><span className="eyebrow">{school.name} · code {school.code}</span><h1>School overview<Info label="Overview">{"Today at a glance: placement across the school, attendance, check-ins and students who need attention. Numbers include active students only."}</Info></h1></div>
         <span className="muted">{fmtLong(info.date)}{info.schoolDay ? "" : ` · ${info.reason}`}</span>
       </div>
 
@@ -64,7 +65,7 @@ export default async function SchoolOverview() {
 
           <section className="grid2">
             <div className="card">
-              <h2>Placement across the school</h2>
+              <h2>Placement across the school<Info label="Placement">{"For each subject, how many assessed students are below, at or above grade level, from each student's latest assessment."}</Info></h2>
               <p className="muted small">{assessed.length} of {students.length} students assessed. Each bar shows students below, at and above grade level.</p>
               {assessed.length ? (
                 <div className="stack" style={{ gap: 10 }}>
@@ -82,7 +83,7 @@ export default async function SchoolOverview() {
               ) : <p className="muted">No completed assessments yet. Students start one from their Today screen.</p>}
             </div>
             <div className="card">
-              <h2>Today&apos;s attendance</h2>
+              <h2>Today&apos;s attendance<Info label="Attendance">{"What coaches have marked so far today. Not marked means a coach hasn't taken attendance for that student yet."}</Info></h2>
               {info.schoolDay ? (
                 <>
                   <p className="num">{marked} of {students.length} marked · {attCount.PRESENT ?? 0} present · {attCount.LATE ?? 0} late · {attCount.ABSENT ?? 0} absent · {attCount.EXCUSED ?? 0} excused</p>
@@ -90,7 +91,7 @@ export default async function SchoolOverview() {
                   <p className="muted small">{plural(school.coachTitle)} take attendance and see each student&apos;s check-in from their class page.</p>
                 </>
               ) : <p className="muted">No school today ({info.reason}).</p>}
-              <h3>Needs attention</h3>
+              <h3>Needs attention<Info label="Needs attention">{"Students below grade level in 2 or more subjects, most first."}</Info></h3>
               {needs.length ? (
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   {needs.map(({ s, n }) => <li key={s.id}><Link href={`/students/${s.id}`}>{s.firstName} {s.lastName}</Link> <span className="muted small">{gradeName(s.grade ?? 0)} · below grade level in {n} subjects</span></li>)}

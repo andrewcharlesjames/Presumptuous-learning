@@ -1,4 +1,5 @@
 "use client";
+import { Info } from "@/components/Info";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -25,7 +26,7 @@ export function SubmitArt({ prompts, accept }: { prompts: string[]; accept: stri
   };
   return (
     <form ref={formRef} onSubmit={submit} className="card">
-      <h2>Hand in your work</h2>
+      <h2>Hand in your work<Info label="Handing in">{"Pick the kind of art, give it a title, then add a file or type your writing. Say what you tried and what you'd change next time. Photos up to 8 MB, audio 15 MB, video 25 MB."}</Info></h2>
       <label className="field">Which prompt?<select id="art-prompt" name="prompt">
         {prompts.map(p => <option key={p} value={p}>{p.length > 110 ? p.slice(0, 110) + "…" : p}</option>)}
         <option value="">My own idea</option>

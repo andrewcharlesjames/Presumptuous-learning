@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -54,7 +55,7 @@ export default async function CoachHome() {
       </div>
       {attention.length > 0 && (
         <section className="card" style={{ borderColor: "var(--below)" }}>
-          <div className="spread"><h2>Needs attention</h2><span className="small muted">{attention.length} student{attention.length === 1 ? "" : "s"}</span></div>
+          <div className="spread"><h2>Needs attention<Info label="Needs attention">{"Students who may need you today: stuck on a skill after 3 lessons, checked in feeling low today, overdue work, or no lessons or practice in the last 3 school days. Click a name to open their plan."}</Info></h2><span className="small muted">{attention.length} student{attention.length === 1 ? "" : "s"}</span></div>
           <div className="stack" style={{ gap: 8 }}>{attention.map(p => (
             <div key={p.id} className="row" style={{ gap: 8, alignItems: "baseline" }}>
               <Link href={`/students/${p.id}`}><b>{p.firstName} {p.lastName}</b></Link>

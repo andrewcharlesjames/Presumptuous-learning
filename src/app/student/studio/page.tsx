@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -36,7 +37,7 @@ export default async function StudioPage() {
   return (
     <Shell user={user}>
       <div className="spread">
-        <div><span className="eyebrow">Arts</span><h1>Studio</h1></div>
+        <div><span className="eyebrow">Arts</span><h1>Studio<Info label="Studio">{"Hand in your arts work here: a photo, drawing, recording or video, or type a poem, story or script. Your coach can leave feedback. Your best work goes in your portfolio, which your family can see."}</Info></h1></div>
         <Link className="btn" href={`/students/${user.id}/portfolio`}>My portfolio</Link>
       </div>
       <section className="grid2">
@@ -45,7 +46,7 @@ export default async function StudioPage() {
       </section>
       <SubmitArt prompts={prompts} accept={ACCEPT_ATTR} />
       <section className="stack">
-        <h2>Recent work</h2>
+        <h2>Recent work<Info label="Recent work">{"Everything you've handed in, newest first. Feedback from your coach shows under each piece."}</Info></h2>
         {recent.length ? (
           <div className="grid3" style={{ alignItems: "start" }}>{recent.map(a => (
             <ArtCard key={a.id} art={a} tz={school.timezone} canFeature canDelete canGiveFeedback={false} returnTo="/student/studio" />

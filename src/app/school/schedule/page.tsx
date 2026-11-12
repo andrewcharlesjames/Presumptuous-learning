@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
@@ -13,7 +14,7 @@ export default async function SchedulePage() {
   const rows = [...blocks.map(b => ({ ...b, kind: b.kind as BlockKindName })), ...Array.from({ length: 3 }, (_, i) => ({ id: `new-${i}`, start: "", end: "", title: "", kind: "OTHER" as BlockKindName, focus: "" }))];
   return (
     <Shell user={user}>
-      <div><span className="eyebrow">{school.name}</span><h1>School day</h1>
+      <div><span className="eyebrow">{school.name}</span><h1>School day<Info label="School day">{"Your bell schedule. Every student's Today page follows it: Assembly holds the check-in, Academics holds their plan, Arts the studio prompt, Life Skills the projects, Reflection the end-of-day reflection. Blocks can't overlap."}</Info></h1>
         <p className="muted" style={{ marginTop: 8, maxWidth: "62ch" }}>Every student&apos;s Today screen follows this timetable. Core Academics is where each student&apos;s personal plan runs. Leave a title blank to remove a block.</p></div>
       <form action={saveSchedule} className="stack">
         <div className="tablewrap"><table>

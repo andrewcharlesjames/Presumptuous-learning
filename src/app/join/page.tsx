@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { JoinForm } from "./JoinForm";
@@ -9,7 +10,7 @@ export default function JoinPage() {
     <div className="wrap">
       <header className="topbar"><Logo /></header>
       <main className="authbox stack">
-        <h1>Create your parent account</h1>
+        <h1>Create your parent account<Info label="Joining">{"Your child's school gives you a family code. It links your account to your child so you can see their plan and progress. You can add more children later with their codes."}</Info></h1>
         <p className="muted">You&apos;ll see your child&apos;s placement, daily plan and attendance. Have more than one child? Add the others from your dashboard after signing up.</p>
         <JoinForm />
         <p className="small muted">Already have an account? <Link href="/login">Sign in</Link>.</p>

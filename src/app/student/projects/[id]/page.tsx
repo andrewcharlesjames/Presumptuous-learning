@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSchoolUser } from "@/lib/auth";
@@ -42,7 +43,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       {!discovered && (
         ideas.length ? (
           <section className="stack">
-            <h2>Ideas made for you</h2>
+            <h2>Ideas made for you<Info label="Ideas">{"Ideas written from your discovery answers. Pick one and change it as much as you like, or write your own idea instead. Your coach approves your proposal before you start."}</Info></h2>
             <p className="muted">Pick the one that excites you most. You can change the details in your proposal.</p>
             <div className="grid2" style={{ alignItems: "start" }}>{ideas.map((idea, i) => (
               <form key={i} action={chooseIdea} className="card">
@@ -72,7 +73,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
       {discovered && (
         <form action={saveProposal} className="card" id="proposal">
-          <div className="spread"><h2>Proposal</h2>
+          <div className="spread"><h2>Proposal<Info label="Proposal">{"Your project in a few lines: what it is, what problem it solves, who it's for and your plan. Send it to your coach. They approve it or tell you what to change."}</Info></h2>
             {proposal && <span className={`pill ${proposal.status === "APPROVED" ? "above" : proposal.status === "SUBMITTED" ? "at" : proposal.status === "NEEDS_WORK" ? "below" : "none"}`}>
               {proposal.status === "APPROVED" ? "Approved" : proposal.status === "SUBMITTED" ? "Waiting for review" : proposal.status === "NEEDS_WORK" ? "Needs work" : "Not handed in"}</span>}</div>
           {proposal?.feedback && <p className="small" style={{ padding: "8px 10px", background: proposal.status === "NEEDS_WORK" ? "var(--below-soft)" : "var(--accent-soft)", borderRadius: 8 }}><b>Coach:</b> {proposal.feedback}</p>}

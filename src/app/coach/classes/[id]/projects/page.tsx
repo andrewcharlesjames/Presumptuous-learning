@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSchoolUser } from "@/lib/auth";
@@ -38,10 +39,10 @@ export default async function ClassProjects({ params }: { params: Promise<{ id: 
   };
   return (
     <Shell user={user}>
-      <div><Link href={`/coach/classes/${cls.id}`} className="small">← {cls.name}</Link><h1>Class projects</h1>
+      <div><Link href={`/coach/classes/${cls.id}`} className="small">← {cls.name}</Link><h1>Class projects<Info label="Class projects">{"Every student's Life Skills and Purpose Projects. Approve each step or send it back with feedback; students can't fall behind silently because overdue steps show here."}</Info></h1>
         <p className="muted small" style={{ marginTop: 6 }}>{queue.length} step{queue.length === 1 ? "" : "s"} waiting for your review</p></div>
       <section className="stack">
-        <h2>Waiting for review</h2>
+        <h2>Waiting for review<Info label="Waiting for review">{"Steps students have sent you. Approve to move them on, or choose Needs work and say what to change."}</Info></h2>
         {queue.length ? queue.map(({ p, m }) => {
           const s = students.find(x => x.id === p.studentId)!;
           return (

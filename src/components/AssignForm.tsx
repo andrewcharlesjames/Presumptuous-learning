@@ -1,4 +1,5 @@
 "use client";
+import { Info } from "@/components/Info";
 import { useMemo, useState } from "react";
 import { createAssignment } from "@/app/coach/assign-actions";
 
@@ -17,7 +18,7 @@ export function AssignForm({ students, menu, subjects, returnTo, defaultGrade }:
   const skills = menu[subject]?.[g] ?? [];
   return (
     <form action={createAssignment} className="card">
-      <h3>Assign work</h3>
+      <h3>Assign work<Info label="Assigning">{"Choose the kind of work, the skill, the students and an optional due date and note. Master a skill = lesson plus mastery check. Practice = one 5-question set. Assessment = retake the placement."}</Info></h3>
       <input type="hidden" name="returnTo" value={returnTo} />
       <div className="form-grid">
         <label className="field">What<select id="as-kind" name="kind" value={kind} onChange={e => setKind(e.target.value)}>

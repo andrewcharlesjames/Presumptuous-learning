@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import type { Project, ProjectMilestone } from "@prisma/client";
 import { fmtDate } from "@/lib/dates";
 import { reviewMilestone, submitMilestone } from "@/app/projects/actions";
@@ -17,7 +18,7 @@ export function ProjectRoadmap({ project, milestones, mode, today, returnTo }: {
   const approved = milestones.filter(m => m.status === "APPROVED").length;
   return (
     <section className="card">
-      <div className="spread"><h2>Roadmap</h2><span className="small muted num">{approved} of {milestones.length} steps approved</span></div>
+      <div className="spread"><h2>Roadmap<Info label="Roadmap">{"The steps from September to Launch Day, each with a due date. Open a step, show what you did (writing, a link or a photo), and send it. Your coach approves it or asks for changes. Steps are spaced out so you're ready for Launch Day in May."}</Info></h2><span className="small muted num">{approved} of {milestones.length} steps approved</span></div>
       <div className="progress" role="progressbar" aria-label="Project steps approved" aria-valuemin={0} aria-valuemax={milestones.length} aria-valuenow={approved}><i style={{ width: `${(approved / milestones.length) * 100}%` }} /></div>
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 0 }}>
         {milestones.map(m => {

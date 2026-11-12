@@ -1,4 +1,5 @@
 "use client";
+import { Info } from "@/components/Info";
 import { useActionState } from "react";
 import { runDiscovery } from "@/app/projects/actions";
 
@@ -9,7 +10,7 @@ export function Discovery({ id, questions, answers, aiOn }: { id: string; questi
   const [state, action, pending] = useActionState(runDiscovery, undefined);
   return (
     <form action={action} className="card">
-      <h2>Discovery</h2>
+      <h2>Discovery<Info label="Discovery">{"Answer these questions about what you love and what bothers you. There are no wrong answers. They help find a project that fits you. Your answers save when you continue."}</Info></h2>
       <p className="muted">Answer honestly. There are no wrong answers. Don&apos;t include anyone&apos;s name or address.</p>
       <input type="hidden" name="id" value={id} />
       {questions.map((q, i) => (

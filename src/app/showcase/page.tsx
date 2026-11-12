@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
@@ -25,7 +26,7 @@ export default async function Showcase() {
     <Shell user={user}>
       <section className="hero" style={{ paddingBlock: "16px 8px" }}>
         <span className="eyebrow">{school.name}</span>
-        <h1>Launch Day showcase</h1>
+        <h1>Launch Day showcase<Info label="Showcase">{"Every student's projects for the school year in one place, ready for Launch Day in May. Families and staff of this school can see it."}</Info></h1>
         <p className="lede">{fmtLong(launch)} · {days > 0 ? `${days} days to go` : days === 0 ? "Today is Launch Day." : "Launched!"} · {projects.length} student project{projects.length === 1 ? "" : "s"}</p>
       </section>
       {types.map(t => {

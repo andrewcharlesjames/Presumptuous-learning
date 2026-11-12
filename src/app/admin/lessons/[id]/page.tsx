@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
@@ -30,7 +31,7 @@ export default async function LessonDetail({ params }: { params: Promise<{ id: s
       </div>
       <LessonView content={c} readAloud={false} />
       <section className="card" style={{ maxWidth: 760 }}>
-        <h2>Mastery check questions</h2>
+        <h2>Mastery check questions<Info label="Mastery check">{"Five questions drawn after the lesson. Students need 4 right to master the skill."}</Info></h2>
         <ol style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 10 }}>{c.checkQuestions.map((q, i) => (
           <li key={i}>{q.prompt}<br /><span className="small"><b>{q.correct}</b> · <span className="muted">{q.wrong.join(" · ")}</span></span><br /><span className="small muted">{q.explanation}</span></li>
         ))}</ol>

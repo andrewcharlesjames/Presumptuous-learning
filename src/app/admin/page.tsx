@@ -37,7 +37,7 @@ export default async function AdminPage() {
         </table></div>
       ) : <div className="empty"><b>No schools yet</b><span>Create your first school below, or a demo school to show prospects.</span></div>}
       <form action={createSchoolAction} className="card">
-        <h2>Add a school</h2>
+        <h2>Add a school<Info label="Adding a school">{"Creates the school with a 90-day pilot (50 seats), the default school day, this year's Ontario calendar and an admin account. A demo school is a filled-in sample for sales calls and can be deleted."}</Info></h2>
         <p className="muted small">Creates the school with the default school day and this year&apos;s Ontario calendar, plus an account for its school admin. You&apos;ll get a temporary password to send them.</p>
         <div className="form-grid">
           <label className="field">School name<input id="name" name="name" type="text" required /></label>

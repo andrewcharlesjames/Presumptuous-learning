@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireSchoolUser } from "@/lib/auth";
@@ -29,7 +30,7 @@ export default async function ClassStudio({ params, searchParams }: { params: Pr
   return (
     <Shell user={user}>
       <div className="spread">
-        <div><Link href={`/coach/classes/${cls.id}`} className="small">← {cls.name}</Link><h1>Class studio</h1>
+        <div><Link href={`/coach/classes/${cls.id}`} className="small">← {cls.name}</Link><h1>Class studio<Info label="Class studio">{"Studio work handed in by your class. Leave feedback the student and family can see, and star a student's best work so it shows first in their portfolio."}</Info></h1>
           <p className="muted small" style={{ marginTop: 6 }}>{works.length} piece{works.length === 1 ? "" : "s"} {all ? "in total" : "in the last 14 days"} · {waiting} without feedback yet</p></div>
         <Link className="btn" href={all ? `/coach/classes/${cls.id}/studio` : `/coach/classes/${cls.id}/studio?all=1`}>{all ? "Last 14 days" : "Show all work"}</Link>
       </div>

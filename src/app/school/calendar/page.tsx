@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
@@ -15,7 +16,7 @@ export default async function CalendarPage() {
   const fmt = (d: Date) => fmtDate(d, { weekday: "short", month: "short", day: "numeric", year: "numeric" });
   return (
     <Shell user={user}>
-      <div><span className="eyebrow">{school.name}</span><h1>School calendar</h1>
+      <div><span className="eyebrow">{school.name}</span><h1>School calendar<Info label="Calendar">{"The school year's first and last days, holidays, breaks and PA days. Holidays, breaks, PA days and anything marked no school aren't school days: streaks skip them and students see the reason on their Today page."}</Info></h1>
         <p className="muted" style={{ marginTop: 8, maxWidth: "62ch" }}>Days marked “no school” are skipped by plans and attendance. Year plans and report-card milestones come from this calendar.</p></div>
       <form action={saveYear} className="card">
         <h2>School year</h2>
@@ -42,7 +43,7 @@ export default async function CalendarPage() {
           </table></div>
         ) : <p className="muted">No events yet.</p>}
         <form action={addEvent} className="card">
-          <h3>Add a date</h3>
+          <h3>Add a date<Info label="Adding a date">{"Add a single day or a range (like March Break). Tick no school for days students aren't in."}</Info></h3>
           <div className="form-grid">
             <label className="field">Title<input id="ev-title" name="title" type="text" placeholder="e.g. PA day" required /></label>
             <label className="field">Type<select id="ev-kind" name="kind" defaultValue="PA_DAY">{KINDS.map(k => <option key={k} value={k}>{CALENDAR_KIND_LABEL[k]}</option>)}</select></label>

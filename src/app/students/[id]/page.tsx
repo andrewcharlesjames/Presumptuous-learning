@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { auditView } from "@/lib/audit";
 import { consentFor } from "@/lib/consent";
@@ -125,7 +126,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
           </section>
 
           <section className="stack">
-            <h2>Placement and next-level requirements</h2>
+            <h2>Placement and next-level requirements<Info label="Placement">{"From the latest assessment. Below, at or above grade level, with the Ontario achievement level (1 to 4) and the grade the student actually works at. The right-hand column lists the skills to master to move up a level. Mastered means a lesson's mastery check was passed; Needs help means 3 checks were missed."}</Info></h2>
             <div className="tablewrap"><table>
               <thead><tr><th>Subject</th><th>Placement</th><th>Level</th><th>To reach the next level, {who.toLowerCase() === "you" ? "show you can" : `${student.firstName} needs to show`}…</th></tr></thead>
               <tbody>{scored.results.map(r => {
@@ -179,7 +180,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
 
       {(assignments.length > 0 || staff) && (
         <section className="card">
-          <h2>Assignments</h2>
+          <h2>Assignments<Info label="Assignments">{"Work set by a coach. Each one completes itself when the student does it (passes the mastery check, finishes the practice set, or retakes the assessment)."}</Info></h2>
           {assignments.length ? (
             <div className="stack" style={{ gap: 6 }}>{assignments.map(a => {
               const doneAt = completed.get(`${a.id}:${student.id}`);
@@ -224,7 +225,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
 
       {history.length > 1 && (
         <section className="card">
-          <h2>Progress over time</h2>
+          <h2>Progress over time<Info label="Progress over time">{"Each assessment taken, so you can see subjects move from below to at to above grade level. Students retake it when their coach assigns it or at the end of a month's plan."}</Info></h2>
           <p className="small muted">The grade level each subject was working at, assessment by assessment.</p>
           <div className="tablewrap" style={{ border: 0 }}><table>
             <thead><tr><th>Subject</th>{[...history].reverse().map(h => <th key={h.id} className="num">{fmtStamp(h.completedAt!, school.timezone, { month: "short", day: "numeric" })}</th>)}<th>Change</th></tr></thead>
@@ -247,7 +248,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
       )}
 
       <section className="card">
-        <div className="spread"><h2>This week</h2><span className="small"><b>{st.current}</b>-day streak · best {st.best}</span></div>
+        <div className="spread"><h2>This week<Info label="This week and streaks">{"A school day counts as complete with a check-in, at least one lesson or practice set, and a reflection. The streak is complete school days in a row; weekends, holidays and PA days don't break it."}</Info></h2><span className="small"><b>{st.current}</b>-day streak · best {st.best}</span></div>
         <WeekStrip days={weekStatus.get(id) ?? []} today={isoDate(today)} since={isoDate(todayIn(school.timezone, student.createdAt))} />
         {weekLogs.filter(l => l.checkedInAt || l.reflectedAt).length > 0 && (
           <div className="tablewrap" style={{ border: 0 }}><table>
@@ -266,7 +267,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
       </section>
 
       <section className="card">
-        <div className="spread"><h2>Skills</h2><span className="small muted num">{skills.filter(k => k.state === "MASTERED").length} mastered · {skills.filter(k => k.state !== "MASTERED").length} in progress</span></div>
+        <div className="spread"><h2>Skills<Info label="Skills">{"Skills the student has started learning through lessons. Mastered: passed the 5-question check (4 or more right). In progress: still learning. Mastered skills come off the plan and the next ones move up."}</Info></h2><span className="small muted num">{skills.filter(k => k.state === "MASTERED").length} mastered · {skills.filter(k => k.state !== "MASTERED").length} in progress</span></div>
         {skills.length ? (
           <div className="tablewrap" style={{ border: 0 }}><table>
             <thead><tr><th>Skill</th><th>Subject</th><th>Status</th><th>Checks</th><th>Last check</th></tr></thead>
@@ -284,7 +285,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
       </section>
 
       <section className="card">
-        <h2>Practice, last 7 days</h2>
+        <h2>Practice, last 7 days<Info label="Practice">{"Practice sets are 5 questions with the answer shown right away. They build confidence and don't change the placement."}</Info></h2>
         {practice ? (
           <>
             <p className="num">{practice.sets} set{practice.sets === 1 ? "" : "s"} · {practice.questions} questions · {Math.round((practice.correct / Math.max(1, practice.questions)) * 100)}% correct · about {practice.minutes} minutes</p>
@@ -302,14 +303,14 @@ export default async function StudentProfile({ params, searchParams }: { params:
 
       <section className="grid2" style={{ alignItems: "start" }}>
         <div className="card">
-          <h2>Attendance, last 30 days</h2>
+          <h2>Attendance, last 30 days<Info label="Attendance">{"Marked by coaches each school day: present, late or absent."}</Info></h2>
           <p className="num">{att.PRESENT} present · {att.LATE} late · {att.ABSENT} absent · {att.EXCUSED} excused</p>
           {attendance.filter(a => a.status !== "PRESENT").sort((a, b) => +b.date - +a.date).slice(0, 6).map(a => (
             <p key={a.id} className="small muted">{fmtDate(a.date, { weekday: "short", month: "short", day: "numeric" })}: {a.status.toLowerCase()}{a.note ? ` (${a.note})` : ""}</p>
           ))}
         </div>
         <div className="card">
-          <h2>Assessment history</h2>
+          <h2>Assessment history<Info label="Assessment history">{"Every placement assessment, including ones not finished yet. The plan always uses the latest finished one."}</Info></h2>
           {history.length ? history.map(h => {
             const r = (h.results ?? []) as StoredResult[];
             const cc = { below: 0, at: 0, above: 0 } as Record<Status, number>;
@@ -321,7 +322,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
 
       {viewer.role === "SCHOOL_ADMIN" && consent && (
         <section className="card">
-          <h2>Privacy and consent</h2>
+          <h2>Privacy and consent<Info label="Consent">{"Platform use: permission to keep the student's learning records. AI features: permission for the AI tutor and project ideas, which send the student's answers or writing (never their name) to the AI service. Parents give or withdraw consent; the school can record a paper form."}</Info></h2>
           <ConsentControls studentId={student.id} state={consent} returnTo={`/students/${student.id}`} recording />
           <p className="small"><a href={`/api/students/${student.id}/export`}>Download all of {student.firstName}&apos;s data (JSON file)</a> · <Link href={`/school/privacy?student=${student.id}`}>Who has viewed or changed these records</Link></p>
           <details className="items"><summary>Permanently delete {student.firstName} and all their data</summary>
@@ -337,7 +338,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
 
       {(staff || viewer.role === "PARENT") && (
         <section className="card">
-          <h2>Account and family</h2>
+          <h2>Account and family<Info label="Account and family">{"How the student signs in (school code, username and password) and the family code parents use to link their account at the Parents: join page. Resetting the password shows a new one once."}</Info></h2>
           <p className="small">{student.studentIn.flatMap(s => s.class.coaches).length === 1 ? school.coachTitle : plural(school.coachTitle)}: {[...new Set(student.studentIn.flatMap(s => s.class.coaches.map(c => `${c.coach.firstName} ${c.coach.lastName}`)))].join(", ") || "not assigned yet"}</p>
           <p className="small">Parents: {student.parents.map(p => `${p.parent.firstName} ${p.parent.lastName}`).join(", ") || "none connected"}</p>
           {staff && <>

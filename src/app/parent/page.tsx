@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -50,7 +51,7 @@ export default async function ParentHome() {
   const artCounts = new Map((await db.artwork.groupBy({ by: ["studentId"], where: { studentId: { in: ids } }, _count: true })).map(c => [c.studentId, c._count]));
   return (
     <Shell user={user}>
-      <div><span className="eyebrow">{school.name}</span><h1>My children</h1></div>
+      <div><span className="eyebrow">{school.name}</span><h1>My children<Info label="Your dashboard">{"Each child's placement, today's work, practice, projects and notes from their coach. Open \"See the full plan\" for every subject and what your child needs to reach the next level."}</Info></h1></div>
       {kids.length ? (
         <div className="grid2">{kids.map(k => {
           const l = latest.get(k.id);
@@ -128,7 +129,7 @@ export default async function ParentHome() {
         })}</div>
       ) : <div className="empty"><b>No children linked yet</b><span>Add one with the family code from the school.</span></div>}
       <form action={linkChild} className="card">
-        <h2>Add a child</h2>
+        <h2>Add a child<Info label="Add a child">{"Each child has a family code from their school (ask the office or their coach). Enter it here to see that child too."}</Info></h2>
         <div className="form-grid">
           <label className="field">Family code<input id="code" name="code" type="text" autoCapitalize="characters" placeholder="ABCD-2345" required /></label>
           <div><button className="btn primary">Add child</button></div>

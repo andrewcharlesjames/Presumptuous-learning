@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -62,13 +63,13 @@ export default async function StudentToday() {
   const answered = inProgress ? (inProgress.answers as (number | null)[]).filter(a => a !== null).length : 0;
   const assessmentCard = inProgress ? (
     <div className="card">
-      <h2>Finish your assessment</h2>
+      <h2>Finish your assessment<Info label="Your assessment">{"Your answers are saved as you go, so you can stop and come back. When you finish, you get your own plan for today, this month and this year."}</Info></h2>
       <p className="muted">You&apos;ve answered {answered} questions so far. Pick up where you left off.</p>
       <div><Link className="btn primary" href="/student/assessment">Continue</Link></div>
     </div>
   ) : !scored ? (
     <form action={startAssessment} className="card">
-      <h2>Start with your placement assessment</h2>
+      <h2>Start with your placement assessment<Info label="Placement assessment">{"A few questions in each of your subjects. They get harder when you're right and easier when you're not sure, to find the level that fits you. It isn't a test you pass or fail. Pick \"I'm not sure yet\" instead of guessing."}</Info></h2>
       <p className="muted">Questions in each of your {subjectsForGrade(grade).length} {gradeName(grade)} subjects. They get harder when you&apos;re right and easier when you&apos;re not sure, to find your level. You can stop and come back any time.</p>
       <div><button className="btn primary">Start the assessment</button></div>
     </form>
@@ -134,7 +135,7 @@ export default async function StudentToday() {
 
       {(openA.length > 0 || recentDone.length > 0) && (
         <section className="card" style={{ borderColor: "var(--accent)" }}>
-          <div className="spread"><h2>From your {school.coachTitle.toLowerCase()}</h2><span className="small muted">{openA.length} to do</span></div>
+          <div className="spread"><h2>From your {school.coachTitle.toLowerCase()}<Info label="Work from your coach">{"Things your coach asked you to do. Each one ticks itself off when you finish it: pass the mastery check, finish a practice set, or retake the assessment."}</Info></h2><span className="small muted">{openA.length} to do</span></div>
           {openA.map(a => {
             const overdue = a.dueDate && a.dueDate < info.date;
             return (
@@ -163,7 +164,7 @@ export default async function StudentToday() {
       {info.schoolDay ? (
         <section className="card">
           <div className="spread" style={{ alignItems: "center" }}>
-            <h2>Today: {doneCount} of {steps.length} done</h2>
+            <h2>Today: {doneCount} of {steps.length} done<Info label="Your day">{"Five things make a full school day: check in, learn (a lesson or practice set), arts, life skills, and reflect. Check in, learn and reflect on every school day to grow your streak. The boxes show this week: green means you finished that day."}</Info></h2>
             <span className="small muted">Check in, learn and reflect to keep your streak.</span>
           </div>
           <div className="progress" role="progressbar" aria-label="Today's progress" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount}><i style={{ width: `${(doneCount / steps.length) * 100}%` }} /></div>
@@ -174,10 +175,10 @@ export default async function StudentToday() {
         <div className="flash ok"><span>No school today ({info.reason}). You can still learn and practice below.</span></div>
       )}
 
-      {info.schoolDay && !kinds.has("ASSEMBLY") && <section className="card"><h2>Morning check-in</h2><CheckIn log={log} mindful={mindful} /></section>}
+      {info.schoolDay && !kinds.has("ASSEMBLY") && <section className="card"><h2>Morning check-in<Info label="Check-in">{"Tell us how you feel and set one goal for today. Your coach sees how the class is feeling."}</Info></h2><CheckIn log={log} mindful={mindful} /></section>}
 
       <section className="card">
-        <div className="spread"><h2>{info.schoolDay ? "Your school day" : "Your learning plan"}</h2></div>
+        <div className="spread"><h2>{info.schoolDay ? "Your school day" : "Your learning plan"}<Info label="Your school day">{"This follows your school's real timetable. Each block shows what to do in it. In Core Academics, \"Learn it\" opens a lesson and then a 5-question check; \"Practice now\" gives you 5 questions with answers shown right away. Labels: Stretch = work from the next grade up, Secure = practice at your grade, Repair = catch up on an earlier skill."}</Info></h2></div>
         {info.events.filter(e => !e.noSchool).map(e => <p key={e.id} className="small"><b>Today:</b> {e.title}</p>)}
         {info.schoolDay && blocks.length ? (
           <div className="day">{blocks.map(b => {
@@ -198,8 +199,8 @@ export default async function StudentToday() {
         ) : learnList}
       </section>
 
-      {info.schoolDay && !kinds.has("ACADEMICS") && <section className="card"><h2>Learn</h2>{learnList}</section>}
-      {info.schoolDay && !kinds.has("REFLECTION") && <section className="card"><h2>End-of-day reflection</h2><Reflect log={log} /></section>}
+      {info.schoolDay && !kinds.has("ACADEMICS") && <section className="card"><h2>Learn<Info label="Learn">{"Skills from your plan. \"Learn it\" teaches the skill and then checks it with 5 questions (get 4 right to master it). \"Practice now\" is 5 questions with answers shown right away."}</Info></h2>{learnList}</section>}
+      {info.schoolDay && !kinds.has("REFLECTION") && <section className="card"><h2>End-of-day reflection<Info label="Reflection">{"One thing you learned, a question you still have, and how hard you pushed. Saving it finishes your day for your streak."}</Info></h2><Reflect log={log} /></section>}
     </Shell>
   );
 }

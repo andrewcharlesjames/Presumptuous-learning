@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/Logo";
@@ -13,7 +14,7 @@ export default async function LoginPage() {
     <div className="wrap">
       <header className="topbar"><Logo /></header>
       <main className="authbox stack">
-        <h1>Sign in</h1>
+        <h1>Sign in<Info label="Signing in">{"Students: choose Student and type your school code, username and password (your coach or the office has them). Parents, coaches and admins: use your email and password. New parent? Use Parents: join with the family code from the school. Forgot your password? Ask your school admin or coach to reset it."}</Info></h1>
         <LoginForms />
         <p className="small muted">Parent with a family code from your child&apos;s school? <Link href="/join">Create your parent account</Link>.</p>
       </main>

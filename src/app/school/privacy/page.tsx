@@ -1,3 +1,4 @@
+import { Info } from "@/components/Info";
 import Link from "next/link";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -24,7 +25,7 @@ export default async function SchoolPrivacy({ searchParams }: { searchParams: Pr
   const count = (k: "platform" | "ai", v: boolean | null) => students.filter(s => consents.get(s.id)![k] === v).length;
   return (
     <Shell user={user}>
-      <div><span className="eyebrow">{school.name}</span><h1>Privacy</h1>
+      <div><span className="eyebrow">{school.name}</span><h1>Privacy<Info label="Privacy">{"Deletion requests from parents, consent across the school, and the audit log of who viewed or changed student records."}</Info></h1>
         <p className="muted small" style={{ marginTop: 6, maxWidth: "70ch" }}>Consent, data requests and a record of who has viewed or changed student records. AI features {school.aiNeedsConsent ? "need" : "don't need"} a parent&apos;s consent at your school (change it in Settings). Families can read the <Link href="/privacy">privacy notice</Link>.</p></div>
 
       <section className="stack">
@@ -53,7 +54,7 @@ export default async function SchoolPrivacy({ searchParams }: { searchParams: Pr
       </section>
 
       <section className="stack">
-        <h2>Consent</h2>
+        <h2>Consent<Info label="Consent">{"How many students have platform and AI consent from a parent or a recorded paper form. Without AI consent (when your school requires it), a student's AI tutor and project ideas stay off."}</Info></h2>
         <p className="small num">Platform use: {count("platform", true)} given · {count("platform", null)} not given yet · {count("platform", false)} withdrawn. AI features: {count("ai", true)} given · {count("ai", null)} not given yet · {count("ai", false)} withdrawn.</p>
         <div className="tablewrap"><table>
           <thead><tr><th>Student</th><th>Grade</th><th>Platform use</th><th>AI features</th></tr></thead>
@@ -66,7 +67,7 @@ export default async function SchoolPrivacy({ searchParams }: { searchParams: Pr
       </section>
 
       <section className="stack">
-        <div className="spread"><h2>Audit log{filter && byId.get(filter) ? `: ${byId.get(filter)!.firstName} ${byId.get(filter)!.lastName}` : ""}</h2>{filter && <Link href="/school/privacy" className="small">Show everyone</Link>}</div>
+        <div className="spread"><h2>Audit log{filter && byId.get(filter) ? `: ${byId.get(filter)!.firstName} ${byId.get(filter)!.lastName}` : ""}<Info label="Audit log">{"Every time staff or parents open a student's records, plus exports, deletions, password resets, consent and settings changes. Nobody can edit or delete it. Click a student's name to see only their entries."}</Info></h2>{filter && <Link href="/school/privacy" className="small">Show everyone</Link>}</div>
         <p className="small muted">The latest 200 events. Each view of a student&apos;s records by staff or a parent is recorded, as are exports, deletions, password resets and changes.</p>
         {events.length ? (
           <div className="tablewrap"><table>
