@@ -1,6 +1,7 @@
 # Presumptuous Learning
 
 **Overreaching is how students get ahead.**
+*Reaching beyond what's expected.*
 
 A platform for schools that assesses every subject in a student's Ontario curriculum (Kindergarten to Grade 12), places each subject below, at or above grade level, and builds a plan for the day, the month and the school year. Students, parents, coaches and school admins each get their own view.
 

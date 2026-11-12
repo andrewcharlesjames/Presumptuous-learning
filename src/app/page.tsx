@@ -48,6 +48,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
         <section className="hero">
           <span className="eyebrow">For Ontario schools · Kindergarten to Grade 12</span>
           <h1>Overreaching is how students get ahead.</h1>
+          <p className="subhead">Reaching beyond what&apos;s expected.</p>
           <p className="lede">
             Every student can work above grade level. We plan for it. Presumptuous Learning assesses every subject in a
             student&apos;s Ontario curriculum, plans each day one level higher, teaches until each skill is mastered, and gives

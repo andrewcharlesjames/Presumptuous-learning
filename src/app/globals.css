@@ -152,6 +152,7 @@ td a { font-weight: 600; }
 /* ---- landing ---- */
 .hero { display: grid; gap: 18px; padding-block: 48px 36px; max-width: 760px; }
 .hero h1 { font-size: clamp(2.2rem, 6vw, 3.6rem); }
+.hero .subhead { margin-top: -10px; font-size: clamp(1.15rem, 2.6vw, 1.5rem); font-weight: 600; color: var(--accent-text); letter-spacing: -0.01em; }
 .hero .lede { font-size: 1.15rem; color: var(--muted); max-width: 62ch; }
 .feature { padding: 18px; border-top: 3px solid var(--accent); background: var(--surface); border-radius: 0 0 var(--r) var(--r); display: grid; gap: 6px; }
 .feature p { color: var(--muted); font-size: .94rem; }
