@@ -4,6 +4,7 @@
 // A student in grade g is asked 2 items from pool g-1, all 3 from pool g, and 2 from pool g+1.
 // The database is the live bank (see questions.ts); this file seeds it. Phase 2 additions live in bank-extra.ts.
 import { BANK_EXTRA } from "./bank-extra.ts";
+import { BANK_EXTRA2 } from "./bank-extra2.ts";
 
 export type Item = [strand: string, skill: string, question: string, correct: string, w1: string, w2: string, w3: string, explanation?: string];
 export type SubjectId = "lang" | "math" | "sci" | "soc" | "fsl" | "arts" | "hpe" | "tech" | "bus" | "ssh" | "gce";
@@ -417,7 +418,7 @@ export const METHODS: Record<SubjectId, Record<Mode, string>> = {
 };
 
 // Append the Phase 2 additions after each pool's original questions, so existing keys stay the same.
-for (const [sid, pools] of Object.entries(BANK_EXTRA) as [SubjectId, Record<number, Item[]>][]) {
+for (const [sid, pools] of [...Object.entries(BANK_EXTRA), ...Object.entries(BANK_EXTRA2)] as [SubjectId, Record<number, Item[]>][]) {
   for (const [p, items] of Object.entries(pools)) {
     const pool = (BANK[sid][Number(p)] ??= []);
     pool.push(...items);

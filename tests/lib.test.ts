@@ -15,8 +15,11 @@ test("every bank item has 4 distinct options", () => {
   }
 });
 
-test("Phase 2 additions: every Language, Science and Social Studies pool has at least 6 questions", () => {
-  for (const sid of ["lang", "sci", "soc"] as const) for (let p = 0; p <= 13; p++) assert.ok((BANK[sid][p]?.length ?? 0) >= 6, `${sid}/${p}`);
+test("Phase 2 additions: every non-math pool has at least 6 written questions", () => {
+  for (const [sid, pools] of Object.entries(BANK)) {
+    if (sid === "math") continue;
+    for (const [p, items] of Object.entries(pools)) assert.ok(items.length >= 6, `${sid}/${p} has ${items.length}`);
+  }
 });
 
 test("every grade gets an assessment for every subject it offers", () => {

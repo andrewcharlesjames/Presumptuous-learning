@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { setFlash } from "@/lib/flash";
 import { isSubjectId } from "@/lib/subjects";
+import { draftQuestions } from "@/lib/drafting";
 
 const schema = z.object({
   subject: z.string().refine(isSubjectId, "Choose a subject."),
@@ -53,4 +54,35 @@ export async function setQuestionFlag(form: FormData) {
   const q = await db.question.update({ where: { id }, data: { [field]: value } });
   revalidatePath("/admin/questions");
   redirect(`/admin/questions?subject=${q.subject}&grade=${q.grade}`);
+}
+
+export async function draftWithAI(form: FormData) {
+  await requireUser(["PLATFORM_ADMIN"]);
+  const subject = String(form.get("subject") ?? "");
+  const grade = Number(form.get("grade"));
+  const back = `/admin/questions?subject=${subject}&grade=${grade}`;
+  if (!isSubjectId(subject) || !Number.isInteger(grade) || grade < 0 || grade > 13) redirect("/admin/questions");
+  const r = await draftQuestions(subject, grade, 5);
+  await setFlash(r.error
+    ? { tone: "error", text: r.error }
+    : { tone: "ok", text: `Drafted ${r.created} question${r.created === 1 ? "" : "s"}. They're hidden from students until you approve each one below.` });
+  revalidatePath("/admin/questions");
+  redirect(back);
+}
+
+export async function approveDraft(form: FormData) {
+  await requireUser(["PLATFORM_ADMIN"]);
+  const id = String(form.get("id") ?? "");
+  const q = await db.question.update({ where: { id }, data: { active: true, source: "ai-approved" } });
+  revalidatePath("/admin/questions");
+  redirect(`/admin/questions?subject=${q.subject}&grade=${q.grade}`);
+}
+
+export async function deleteDraft(form: FormData) {
+  await requireUser(["PLATFORM_ADMIN"]);
+  const id = String(form.get("id") ?? "");
+  const q = await db.question.findUnique({ where: { id } });
+  if (q?.source === "ai-draft") await db.question.delete({ where: { id } });
+  revalidatePath("/admin/questions");
+  redirect(q ? `/admin/questions?subject=${q.subject}&grade=${q.grade}` : "/admin/questions");
 }
