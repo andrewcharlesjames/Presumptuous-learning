@@ -6,6 +6,8 @@ export type Subject = {
   max: number;
   name: (g: number) => string;
   note: (g: number) => string;
+  /** false: taught and tracked, but not part of the placement assessment */
+  assessed?: boolean;
 };
 
 /** Ontario curriculum subject names by grade. Grade 0 = Kindergarten. */
@@ -31,12 +33,16 @@ export const SUBJECTS: Subject[] = [
   { id: "bus", min: 9, max: 12, name: () => "Business Studies", note: () => "Elective" },
   { id: "ssh", min: 9, max: 12, name: () => "Social Sciences & Humanities", note: () => "Elective" },
   { id: "gce", min: 9, max: 12, name: () => "Guidance & Career Education", note: () => "Includes Career Studies" },
+  { id: "ent", min: 0, max: 12, name: () => "Entrepreneurship & Life Skills", note: () => "Presumptuous Project learning strand", assessed: false },
 ];
+
+/** Subjects the placement assessment covers. */
+export const ASSESSED = SUBJECTS.filter(s => s.assessed !== false);
 
 export const SUBJECT_BY_ID = Object.fromEntries(SUBJECTS.map(s => [s.id, s])) as Record<SubjectId, Subject>;
 
 export function subjectsForGrade(g: number): Subject[] {
-  return SUBJECTS.filter(s => g >= s.min && g <= s.max);
+  return ASSESSED.filter(s => g >= s.min && g <= s.max);
 }
 
 export function isSubjectId(x: string): x is SubjectId {

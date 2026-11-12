@@ -74,6 +74,13 @@ src/lib/templates.ts      default school day and Ontario calendar template
 src/app/                  pages by role: admin/, school/, coach/, parent/, student/, students/[id]
 ```
 
+## The Presumptuous Project (Life Skills · Business)
+
+- The business project is now the **Presumptuous Project**, alongside the Purpose Project.
+- **Entrepreneurship & Life Skills strand, K–12** (`src/lib/presumptuous.ts`): ten monthly units, September to June, each lined up with that month's project step. Two business skills and one life skill per unit, per grade band (K–2, 3–5, 6–8, 9–12), taught with AI lessons and 5-question mastery checks like academics, then applied to the student's own business. Pitched younger than the Ontario curriculum; each unit lists the Ontario expectations it supports (financial literacy, data, oral communication, persuasive writing; Business and Career Studies in high school).
+- **Default timetable**: blocks can run on chosen weekdays. Academics 2 h daily; Presumptuous Project 2 h Mon/Wed/Fri and 1 h Tue/Thu; Arts the reverse (weekly: 10 h academics, 8 h Presumptuous Project, 7 h arts). Existing schools keep their timetable; School day → Restore the default day switches to it.
+- Shown on Today (this month's skills, Learn it, Apply it), the plan (the year's units), the coach's class table and the report card (its own section with a mark from the share of the term's skills mastered).
+
 ## Phase 9: email, sign-in options and report cards
 
 - **Email** through [Resend](https://resend.com): password reset links, a Friday parent email (each child's week, with one-click unsubscribe), pilot request alerts and invoices. Without `RESEND_API_KEY` and `EMAIL_FROM` nothing is sent and each email is logged as not sent. Platform admin → **Email** shows every email, sends a test and can run the weekly email on demand.
@@ -99,7 +106,7 @@ src/app/                  pages by role: admin/, school/, coach/, parent/, stude
 - **Pilot requests** (Platform admin → Pilot requests): mark contacted or closed, or **Start a pilot**, which creates the school with a 90-day pilot licence and its admin account.
 - **Licences** (Platform admin → click a school): plan (Pilot or Active), seats, start and end dates, price per student per year, billing email. Adding or importing students past the seat limit is refused. School admins see a banner 30 days before the licence ends, after it ends, or when they're over their seats; coaches see one only once it has ended. Nothing is locked when a licence ends.
 - **Invoices**: created by the platform admin with 13% HST, numbered PL-year-0001; mark paid, unpaid or void. School admins see them under **Billing** and can print or save each as a PDF. Set `BILLING_NAME` and `HST_NUMBER` in Railway to show them on invoices.
-- **Richer demo school**: two weeks of history, daily check-ins and reflections with streaks, practice, mastered skills, a stuck student for "Needs attention", poems with coach feedback, Life Skills and Purpose Projects at different stages, assignments, notes and consents.
+- **Richer demo school**: two weeks of history, daily check-ins and reflections with streaks, practice, mastered skills, a stuck student for "Needs attention", poems with coach feedback, Presumptuous and Purpose Projects at different stages, assignments, notes and consents.
 
 ## Phase 7: privacy and school readiness
 

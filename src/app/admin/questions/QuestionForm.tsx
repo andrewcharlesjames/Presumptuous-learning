@@ -1,5 +1,5 @@
 import type { Question } from "@prisma/client";
-import { SUBJECTS, gradeName } from "@/lib/subjects";
+import { ASSESSED, SUBJECTS, gradeName } from "@/lib/subjects";
 import { saveQuestion } from "./actions";
 
 export function QuestionForm({ q, subject, grade }: { q?: Question; subject?: string; grade?: number }) {
@@ -7,7 +7,7 @@ export function QuestionForm({ q, subject, grade }: { q?: Question; subject?: st
     <form action={saveQuestion} className="card">
       {q && <input type="hidden" name="id" value={q.id} />}
       <div className="form-grid">
-        <label className="field">Subject<select id="subject" name="subject" defaultValue={q?.subject ?? subject ?? "math"}>{SUBJECTS.map(s => <option key={s.id} value={s.id}>{s.name(5)}{s.min >= 9 ? " (secondary)" : ""}</option>)}</select></label>
+        <label className="field">Subject<select id="subject" name="subject" defaultValue={q?.subject ?? subject ?? "math"}>{ASSESSED.map(s => <option key={s.id} value={s.id}>{s.name(5)}{s.min >= 9 ? " (secondary)" : ""}</option>)}</select></label>
         <label className="field">Grade<select id="grade" name="grade" defaultValue={q?.grade ?? grade ?? 5}>{Array.from({ length: 14 }, (_, g) => <option key={g} value={g}>{gradeName(g)}</option>)}</select></label>
         <label className="field">Strand<input id="strand" name="strand" type="text" defaultValue={q?.strand} placeholder="e.g. Number" required /></label>
         <label className="field">Skill<span className="hint">Short and specific. Plans and practice use it.</span><input id="skill" name="skill" type="text" defaultValue={q?.skill} placeholder="e.g. Equivalent fractions" required /></label>

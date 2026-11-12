@@ -5,7 +5,7 @@ export type CalendarKindName = "FIRST_DAY" | "LAST_DAY" | "HOLIDAY" | "BREAK" | 
 
 export const BLOCK_KIND_LABEL: Record<BlockKindName, string> = {
   ASSEMBLY: "Morning assembly", ACADEMICS: "Core academics", BREAK: "Break", ARTS: "Arts",
-  LUNCH: "Lunch", LIFE_SKILLS: "Life skills", REFLECTION: "Reflection & leadership", OTHER: "Other",
+  LUNCH: "Lunch", LIFE_SKILLS: "Presumptuous Project", REFLECTION: "Reflection & leadership", OTHER: "Other",
 };
 
 export const CALENDAR_KIND_LABEL: Record<CalendarKindName, string> = {
@@ -13,15 +13,30 @@ export const CALENDAR_KIND_LABEL: Record<CalendarKindName, string> = {
   PA_DAY: "PA day", REPORT: "Report card", EVENT: "Event",
 };
 
-/** Default school day: arts- and life-skills-centred, with two hours of personalized academics. */
-export const DEFAULT_DAY: { start: string; end: string; title: string; kind: BlockKindName; focus: string }[] = [
-  { start: "09:00", end: "09:30", title: "Morning Assembly", kind: "ASSEMBLY", focus: "Goal setting and mindfulness" },
-  { start: "09:30", end: "11:30", title: "Core Academics", kind: "ACADEMICS", focus: "Personalized math, language, science and social studies" },
-  { start: "11:30", end: "12:00", title: "Outdoor Break & Snack", kind: "BREAK", focus: "Physical activity and connection" },
-  { start: "12:00", end: "14:00", title: "Arts", kind: "ARTS", focus: "Visual arts, drama, music and media arts" },
-  { start: "14:00", end: "14:30", title: "Lunch", kind: "LUNCH", focus: "Rest and connection" },
-  { start: "14:30", end: "15:30", title: "Life Skills", kind: "LIFE_SKILLS", focus: "Financial literacy, entrepreneurship and projects" },
-  { start: "15:30", end: "16:00", title: "Reflection & Leadership", kind: "REFLECTION", focus: "Personal development and leadership" },
+export const EVERY_DAY = [0, 1, 2, 3, 4];
+const MWF = [0, 2, 4], TTH = [1, 3];
+export const DAY_PATTERNS: { label: string; days: number[] }[] = [
+  { label: "Every day", days: EVERY_DAY }, { label: "Mon, Wed, Fri", days: MWF }, { label: "Tue, Thu", days: TTH },
+  { label: "Mon", days: [0] }, { label: "Tue", days: [1] }, { label: "Wed", days: [2] }, { label: "Thu", days: [3] }, { label: "Fri", days: [4] },
+];
+const DAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+export const daysLabel = (days: number[]) => DAY_PATTERNS.find(p => p.days.join() === [...days].sort().join())?.label ?? [...days].sort().map(d => DAY_ABBR[d]).join(", ");
+
+/**
+ * Default school day. Academics 2 hours every day. The Presumptuous Project gets 2 hours on Monday,
+ * Wednesday and Friday and 1 hour on Tuesday and Thursday; Arts the reverse.
+ * Weekly: Academics 10 h, Presumptuous Project 8 h, Arts 7 h.
+ */
+export const DEFAULT_DAY: { start: string; end: string; title: string; kind: BlockKindName; focus: string; days: number[] }[] = [
+  { start: "09:00", end: "09:30", title: "Morning Assembly", kind: "ASSEMBLY", focus: "Goal setting and mindfulness", days: EVERY_DAY },
+  { start: "09:30", end: "11:30", title: "Core Academics", kind: "ACADEMICS", focus: "Personalized math, language, science and social studies", days: EVERY_DAY },
+  { start: "11:30", end: "12:00", title: "Outdoor Break & Snack", kind: "BREAK", focus: "Physical activity and connection", days: EVERY_DAY },
+  { start: "12:00", end: "14:00", title: "Presumptuous Project", kind: "LIFE_SKILLS", focus: "Learn business and life skills, then build your business", days: MWF },
+  { start: "12:00", end: "14:00", title: "Arts", kind: "ARTS", focus: "Visual arts, drama, music and media arts", days: TTH },
+  { start: "14:00", end: "14:30", title: "Lunch", kind: "LUNCH", focus: "Rest and connection", days: EVERY_DAY },
+  { start: "14:30", end: "15:30", title: "Arts", kind: "ARTS", focus: "Visual arts, drama, music and media arts", days: MWF },
+  { start: "14:30", end: "15:30", title: "Presumptuous Project", kind: "LIFE_SKILLS", focus: "Learn business and life skills, then build your business", days: TTH },
+  { start: "15:30", end: "16:00", title: "Reflection & Leadership", kind: "REFLECTION", focus: "Personal development and leadership", days: EVERY_DAY },
 ];
 
 const nthWeekday = (y: number, m: number, weekday: number, n: number) => {

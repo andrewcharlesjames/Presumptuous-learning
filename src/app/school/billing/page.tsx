@@ -28,7 +28,7 @@ export default async function BillingPage() {
       </div>
       <section className="card">
         <h2>What&apos;s included</h2>
-        <p>Every subject&apos;s placement assessment, daily plans, AI lessons and mastery checks, the AI tutor, the school day, the studio and portfolio, the Life Skills and Purpose Projects with Launch Day, and accounts for every coach, parent and admin. Only students use seats.</p>
+        <p>Every subject&apos;s placement assessment, daily plans, AI lessons and mastery checks, the AI tutor, the school day, the studio and portfolio, the Presumptuous and Purpose Projects with Launch Day, and accounts for every coach, parent and admin. Only students use seats.</p>
         <p className="small muted">To add seats, renew or change your plan, contact Presumptuous Learning{school.billingEmail ? `. Invoices go to ${school.billingEmail}` : ""}. Deactivated students free up their seat.</p>
       </section>
       <section className="card">

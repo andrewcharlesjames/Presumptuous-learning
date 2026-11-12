@@ -70,5 +70,22 @@ export function draftComment(o: { first: string; subject: string; status: "below
     : o.status === "at" ? `is working at grade level in ${o.subject}` : `is building the foundations in ${o.subject} and is working at a ${o.workingGrade} level`;
   const strength = o.mastered.length ? ` ${o.first} has shown mastery of ${join(o.mastered.slice(0, 3).map(inSentence))}.` : "";
   const next = o.next.length ? ` Next steps: ${o.first} will work on ${join(o.next.slice(0, 2).map(inSentence))}.` : "";
-  return `${o.first} ${where}.${strength}${next}`.replace(/\s+/g, " ").trim();
+  return `${o.first} ${where}.${strength}${next}`.replace(/\s+/g, " ").replace(/\?\./g, "?").trim();
+}
+
+/** Level for the Presumptuous Project strand from the share of this term's skills mastered. */
+export function entLevel(mastered: number, taught: number): { level: 1 | 2 | 3 | 4; status: "below" | "at" | "above" } {
+  const r = taught ? mastered / taught : 0;
+  const level = r >= 0.8 ? 4 : r >= 0.6 ? 3 : r >= 0.4 ? 2 : 1;
+  return { level, status: level === 4 ? "above" : level === 3 ? "at" : "below" };
+}
+
+/** Draft comment for the Presumptuous Project section. */
+export function draftEntComment(o: { first: string; project?: string | null; mastered: string[]; taught: number; stepsApproved: number; stepsDue: number; next: string[] }): string {
+  const learned = o.mastered.length
+    ? `${o.first} has mastered ${o.mastered.length} of ${o.taught} business and life skills this term, including ${join(o.mastered.slice(0, 3).map(inSentence))}.`
+    : `${o.first} is beginning to learn the business and life skills for this term.`;
+  const project = o.project ? ` ${o.first}'s business, ${o.project}, has ${o.stepsApproved} of ${o.stepsDue} project steps approved so far.` : ` ${o.first} is still choosing a business idea.`;
+  const next = o.next.length ? ` Next steps: ${o.first} will work on ${join(o.next.slice(0, 2).map(inSentence))} and apply them to their business.` : "";
+  return `${learned}${project}${next}`.replace(/\?\./g, "?");
 }

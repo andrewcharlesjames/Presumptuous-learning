@@ -7,11 +7,12 @@ import { BANK_EXTRA } from "./bank-extra.ts";
 import { BANK_EXTRA2 } from "./bank-extra2.ts";
 
 export type Item = [strand: string, skill: string, question: string, correct: string, w1: string, w2: string, w3: string, explanation?: string];
-export type SubjectId = "lang" | "math" | "sci" | "soc" | "fsl" | "arts" | "hpe" | "tech" | "bus" | "ssh" | "gce";
+export type SubjectId = "lang" | "math" | "sci" | "soc" | "fsl" | "arts" | "hpe" | "tech" | "bus" | "ssh" | "gce" | "ent";
 export type Mode = "repair" | "practice" | "stretch";
 export type Bank = Record<SubjectId, Record<number, Item[]>>;
 
 export const BANK: Bank = {
+  ent: {}, // Entrepreneurship & Life Skills is taught through lessons, not placed by the assessment
 lang:{
 0:[["Foundations of Language","Rhyming words","Which word rhymes with CAT?","hat","dog","cup","sun"],
    ["Foundations of Language","Beginning sounds","Which word starts with the same sound as BALL?","bat","doll","map","sun"],
@@ -382,6 +383,9 @@ gce:{
 };
 
 export const METHODS: Record<SubjectId, Record<Mode, string>> = {
+  ent: {repair:"Learn {s} with a lesson, then try it on your Presumptuous Project.",
+       practice:"Use {s} on your Presumptuous Project today and write down what happened.",
+       stretch:"Teach {s} to someone else, using your own business as the example."},
  lang:{repair:"Read a short text that feels easy. Look at 3 examples of {s} together, try 5 on your own, then explain one answer out loud.",
        practice:"Read a grade-level text and practice {s}. Write 3–5 sentences that show it, then compare them with a strong example.",
        stretch:"Read something harder than usual (a novel chapter, news article or poem). Use {s} in a short written response and share it."},

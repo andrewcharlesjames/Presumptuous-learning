@@ -210,16 +210,23 @@ export async function saveSchedule(form: FormData) {
   const { school } = await admin();
   const starts = form.getAll("start").map(String), ends = form.getAll("end").map(String);
   const titles = form.getAll("title").map(String), kinds = form.getAll("kind").map(String), focus = form.getAll("focus").map(String);
-  const rows = starts.map((start, i) => ({ start, end: ends[i], title: titles[i]?.trim(), kind: kinds[i] as BlockKindName, focus: focus[i]?.trim() ?? "" }))
-    .filter(r => r.title);
+  const dayLists = form.getAll("days").map(String);
+  const rows = starts.map((start, i) => ({
+    start, end: ends[i], title: titles[i]?.trim(), kind: kinds[i] as BlockKindName, focus: focus[i]?.trim() ?? "",
+    days: [...new Set((dayLists[i] ?? "0,1,2,3,4").split(",").map(Number).filter(d => Number.isInteger(d) && d >= 0 && d <= 4))].sort(),
+  })).filter(r => r.title);
   for (const r of rows) {
     if (!TIME.test(r.start) || !TIME.test(r.end) || r.end <= r.start || !KINDS.includes(r.kind)) {
       return back("/school/schedule", "error", `Check "${r.title}": it needs a start time before its end time.`);
     }
   }
+  if (rows.some(r => !r.days.length)) return back("/school/schedule", "error", "Every block needs at least one day.");
   rows.sort((a, b) => a.start.localeCompare(b.start));
-  for (let i = 1; i < rows.length; i++) {
-    if (rows[i].start < rows[i - 1].end) return back("/school/schedule", "error", `"${rows[i].title}" overlaps "${rows[i - 1].title}".`);
+  for (let d = 0; d < 5; d++) {
+    const today = rows.filter(r => r.days.includes(d));
+    for (let i = 1; i < today.length; i++) {
+      if (today[i].start < today[i - 1].end) return back("/school/schedule", "error", `"${today[i].title}" overlaps "${today[i - 1].title}" on ${["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"][d]}.`);
+    }
   }
   await db.$transaction([
     db.scheduleBlock.deleteMany({ where: { schoolId: school.id } }),

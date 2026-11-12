@@ -1,8 +1,10 @@
-// Life Skills Project (a business) and Purpose Project (community impact): templates and schedule.
+// Presumptuous Project (a business) and Purpose Project (community impact): templates and schedule.
 import { addDays, utcDate, weekdayIndex } from "./dates.ts";
 
 export type ProjectTypeName = "LIFE_SKILLS" | "PURPOSE";
-export const PROJECT_LABEL: Record<ProjectTypeName, string> = { LIFE_SKILLS: "Life Skills Project", PURPOSE: "Purpose Project" };
+/** Shown under the project name so families know what it is. */
+export const PROJECT_SUB: Record<ProjectTypeName, string> = { LIFE_SKILLS: "Life Skills · Business", PURPOSE: "Community impact" };
+export const PROJECT_LABEL: Record<ProjectTypeName, string> = { LIFE_SKILLS: "Presumptuous Project", PURPOSE: "Purpose Project" };
 export const PROJECT_BLURB: Record<ProjectTypeName, string> = {
   LIFE_SKILLS: "Start a real business you care about, from first idea to Launch Day.",
   PURPOSE: "Make a real difference in your school or community, and show the impact.",

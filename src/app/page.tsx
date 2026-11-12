@@ -5,19 +5,19 @@ import { requestPilot } from "./pilot-actions";
 
 export const metadata = {
   title: "Presumptuous Learning: Ontario K–12, planned above grade level",
-  description: "Assess every Ontario subject, plan every day above grade level, teach until mastery, report to families, and run the Life Skills and Purpose Projects. Built for schools.",
+  description: "Assess every Ontario subject, plan every day above grade level, teach until mastery, report to families, and run the Presumptuous and Purpose Projects. Built for schools.",
 };
 
 const STEPS = [
   { n: "1", t: "Assess", d: "An adaptive placement in every subject of the student's Ontario curriculum finds the level they really work at: below, at or above grade." },
   { n: "2", t: "Plan", d: "A plan for today, this month and the school year, aimed one level higher than where the student is now." },
   { n: "3", t: "Learn and master", d: "AI lessons teach each skill, then a mastery check tests it. Miss it and the lesson is taught again a different way, until they get it." },
-  { n: "4", t: "Build", d: "Every student runs a Life Skills Project (a business) and a Purpose Project (a community give-back) from September to June." },
+  { n: "4", t: "Build", d: "Every student runs a Presumptuous Project (their own business, with business and life skills lessons every month) and a Purpose Project (a community give-back), September to June." },
   { n: "5", t: "Show", d: "Students present on Launch Day in May. Families follow along every week and get report cards in Ontario's format." },
 ];
 
 const SHOTS = [
-  { src: "/screens/today.webp", w: 1080, h: 820, t: "A student's day", d: "Check in, the plan inside your timetable, arts, life skills and reflection, with a streak for finishing the day." },
+  { src: "/screens/today.webp", w: 1080, h: 820, t: "A student's day", d: "Check in, the plan inside your timetable, arts, the Presumptuous Project and reflection, with a streak for finishing the day." },
   { src: "/screens/placement.webp", w: 1080, h: 760, t: "Placement in every subject", d: "Where the student works now, and exactly which skills take them to the next level." },
   { src: "/screens/report.webp", w: 1040, h: 900, t: "Report cards families can print", d: "Ontario's learning skills and marks, with comments drafted from the student's work for the coach to finish." },
 ];
@@ -36,14 +36,14 @@ const PARENTS = [
 
 const INCLUDED = [
   "Adaptive placement, K–12", "Daily, monthly and yearly plans", "AI lessons and mastery checks", "AI tutor (optional)",
-  "Your bell schedule and calendar", "Studio and portfolio", "Life Skills and Purpose Projects", "Launch Day showcase",
+  "Your bell schedule and calendar", "Studio and portfolio", "Presumptuous and Purpose Projects", "Business & life skills strand, K–12", "Launch Day showcase",
   "Ontario-format report cards", "Weekly parent email", "QR sign-in cards for young students", "Sign in with Google or Microsoft",
 ];
 
 const FAQ = [
   { q: "Does it replace teachers?", a: "No. We call the adults who work with students coaches: your teachers, ECEs and support staff. The platform does the assessing, planning, first teaching and checking, so coaches can spend their time with the students who need them most." },
   { q: "Does it follow the Ontario curriculum?", a: "Yes. Every grade from Kindergarten to Grade 12 is assessed in the subjects of the Ontario curriculum, results use the achievement levels 1 to 4, and report cards follow the provincial format: progress words in the fall, letter grades for Grades 1 to 6, percentages from Grade 7, and the six learning skills." },
-  { q: "How much time does it take each day?", a: "It fits the timetable you already have. The plan fills your academic blocks in short pieces: a lesson with a 5-question check, or a 5-question practice set. Students check in each morning and reflect at the end of the day." },
+  { q: "How much time does it take each day?", a: "It fits the timetable you already have. The plan fills your academic blocks in short pieces: a lesson with a 5-question check, or a 5-question practice set. Students check in each morning and reflect at the end of the day. By default the week holds 10 hours of academics and 8 hours of Presumptuous Project time, with the business lessons tied to Ontario math and language expectations." },
   { q: "What devices does it need?", a: "Any device with a web browser: Chromebooks, iPads, laptops or phones. Nothing to install. Young students can sign in by holding up a printed QR card to the camera." },
   { q: "How is AI used, and is it safe?", a: "AI writes the lessons for each skill and, if your school switches it on, short explanations of wrong practice answers. It never receives a student's name. Schools can require a parent's consent first, and every view of a student's records is logged." },
   { q: "What does it cost?", a: "Schools pay one price per student per year, with every feature included. Coaches, parents and admins are free, and families never pay. Every school starts with a 90-day pilot." },
@@ -141,7 +141,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
           <div className="stack">
             <span className="eyebrow">The school day</span>
             <h2>Follows your timetable, September to June</h2>
-            <p className="muted">Each student&apos;s Today screen follows your bell schedule and school calendar: morning check-in, core academics from their plan, arts in the studio, life skills, and an end-of-day reflection. PA days, holidays and breaks come from your calendar, with the Ontario template built in.</p>
+            <p className="muted">Each student&apos;s Today screen follows your bell schedule and school calendar: morning check-in, core academics from their plan, the Presumptuous Project, arts in the studio, and an end-of-day reflection. By default students spend 10 hours a week on academics and 8 on their Presumptuous Project. PA days, holidays and breaks come from your calendar, with the Ontario template built in.</p>
           </div>
           <div className="stack">
             <span className="eyebrow">Teaches, then tests</span>
@@ -154,10 +154,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ p
           <span className="eyebrow">Projects and Launch Day</span>
           <h2>Every student launches something real</h2>
           <div className="grid2">
-            <div className="feature"><h3>Life Skills Project</h3><p>A business the student designs, tests with real customers and launches. Budgets, pricing, pitching and the courage to sell.</p></div>
-            <div className="feature"><h3>Purpose Project</h3><p>A community impact project: a cause they care about, a partner, a plan, and numbers that show what changed.</p></div>
+            <div className="feature"><span className="eyebrow">Life Skills · Business</span><h3>Presumptuous Project</h3><p>A real business the student designs, tests with customers and launches. Every month brings two business skills and one life skill, from pricing and profit to pitching and resilience, taught with lessons and mastery checks and used straight away on their own business.</p></div>
+            <div className="feature"><span className="eyebrow">Community impact</span><h3>Purpose Project</h3><p>A community impact project: a cause they care about, a partner, a plan, and numbers that show what changed.</p></div>
           </div>
-          <p className="muted">An AI discovery interview helps each student find a project that fits them. Nine milestones run from September to June, each reviewed by a coach, with presentations on Launch Day in May.</p>
+          <p className="muted">An AI discovery interview helps each student find a project that fits them. Nine milestones run from September to June, each reviewed by a coach, with presentations on Launch Day in May. We start younger than the Ontario curriculum: Kindergarten to Grade 2 already meet price, cost and profit at a lemonade stand. Each unit is tied to Ontario math and language expectations, such as financial literacy, data and oral communication, so the time counts toward academics too.</p>
         </section>
 
         <section className="stack">

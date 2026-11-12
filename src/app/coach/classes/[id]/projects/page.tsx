@@ -39,7 +39,7 @@ export default async function ClassProjects({ params }: { params: Promise<{ id: 
   };
   return (
     <Shell user={user}>
-      <div><Link href={`/coach/classes/${cls.id}`} className="small">← {cls.name}</Link><h1>Class projects<Info label="Class projects">{"Every student's Life Skills and Purpose Projects. Approve each step or send it back with feedback; students can't fall behind silently because overdue steps show here."}</Info></h1>
+      <div><Link href={`/coach/classes/${cls.id}`} className="small">← {cls.name}</Link><h1>Class projects<Info label="Class projects">{"Every student's Presumptuous and Purpose Projects. Approve each step or send it back with feedback; students can't fall behind silently because overdue steps show here."}</Info></h1>
         <p className="muted small" style={{ marginTop: 6 }}>{queue.length} step{queue.length === 1 ? "" : "s"} waiting for your review</p></div>
       <section className="stack">
         <h2>Waiting for review<Info label="Waiting for review">{"Steps students have sent you. Approve to move them on, or choose Needs work and say what to change."}</Info></h2>
@@ -70,7 +70,7 @@ export default async function ClassProjects({ params }: { params: Promise<{ id: 
       <section className="stack">
         <h2>Every student</h2>
         <div className="tablewrap"><table>
-          <thead><tr><th>Student</th><th>Life Skills Project</th><th>Purpose Project</th></tr></thead>
+          <thead><tr><th>Student</th><th>Presumptuous Project</th><th>Purpose Project</th></tr></thead>
           <tbody>{students.map(s => (
             <tr key={s.id}><td><Link href={`/students/${s.id}/projects`}>{s.firstName} {s.lastName}</Link></td><td>{cell(s.id, "LIFE_SKILLS")}</td><td>{cell(s.id, "PURPOSE")}</td></tr>
           ))}</tbody>

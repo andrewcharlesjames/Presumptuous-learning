@@ -6,6 +6,7 @@ import { addDays, schoolYearOf, todayIn } from "./dates";
 import { skillIndex } from "./questions";
 import { defaultLaunchDay, MILESTONES, milestoneDates, type ProjectTypeName } from "./projects";
 import type { SubjectId } from "./bank";
+import { ENT, skillsSoFar } from "./presumptuous";
 import { hashPassword, kidPassword, tempPassword } from "./passwords";
 import { createSchool, dayInfo, uniqueFamilyCode, uniqueSchoolCode } from "./records";
 
@@ -106,6 +107,11 @@ export async function createDemoSchool() {
       made++;
       await db.skillProgress.create({ data: { studentId: student.id, subject: sid, grade: s.grade, skill, state: "MASTERED", attempts: 1 + (made % 2), lastScore: 4 + (made % 2), lastTotal: 5, masteredAt: addDays(new Date(), -made * 3) } });
     }
+    // Presumptuous Project learning: business and life skills from the units taught so far
+    const entSoFar = skillsSoFar(today, s.grade);
+    const entCount = s.profile === "above" ? entSoFar.length - 1 : s.profile === "below" ? 2 : Math.ceil(entSoFar.length * 0.7);
+    for (const [k, e] of entSoFar.slice(0, Math.max(0, entCount)).entries())
+      await db.skillProgress.create({ data: { studentId: student.id, subject: ENT, grade: s.grade, skill: e.skill, state: "MASTERED", attempts: 1, lastScore: 5 - (k % 2), lastTotal: 5, masteredAt: addDays(new Date(), -(entSoFar.length - k) * 4) } });
     if (s.profile === "below") {
       const skill = skillsAt("math")(s.grade)[1];
       if (skill) await db.skillProgress.create({ data: { studentId: student.id, subject: "math", grade: s.grade, skill, state: "LEARNING", attempts: 3, lastScore: 2, lastTotal: 5 } });
@@ -124,7 +130,7 @@ export async function createDemoSchool() {
       });
     }
 
-    // Projects at different stages: everyone has a Life Skills Project; every other student a Purpose Project too.
+    // Projects at different stages: everyone has a Presumptuous Project; every other student a Purpose Project too.
     const types: ProjectTypeName[] = idx % 2 === 0 ? ["LIFE_SKILLS", "PURPOSE"] : ["LIFE_SKILLS"];
     for (const type of types) {
       const idea = PROJECTS[type][idx % PROJECTS[type].length];

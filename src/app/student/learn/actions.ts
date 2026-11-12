@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isSubjectId } from "@/lib/subjects";
+import { ENT, findEntSkill } from "@/lib/presumptuous";
 import { shuffle, toStoredQuestion, type BankItem } from "@/lib/assessment";
 import { getOrCreateLesson, lessonCheckItems, MASTERY_SET, MAX_VARIANT } from "@/lib/lessons";
 import { GENERATORS } from "@/lib/generators";
@@ -22,7 +23,8 @@ export async function prepareLesson(subject: string, grade: number, skill: strin
   const user = await requireUser(["STUDENT"]);
   if (!isSubjectId(subject) || !skill || !Number.isInteger(grade) || grade < 0 || grade > 13) return { ok: false };
   // Only real skills from the bank, near the student's grade, and only the variant they've earned.
-  const known = await db.question.findFirst({ where: { subject, skill, source: { not: "lesson" } }, select: { strand: true } });
+  const ent = subject === ENT ? findEntSkill(skill) : null;
+  const known = ent ? { strand: ent.unit.title } : await db.question.findFirst({ where: { subject, skill, source: { not: "lesson" } }, select: { strand: true } });
   const generated = subject === "math" && GENERATORS.some(g => g.skill === skill);
   if (!known && !generated) return { ok: false };
   if (Math.abs(grade - (user.grade ?? 0)) > 4) return { ok: false };

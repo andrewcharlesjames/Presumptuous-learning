@@ -26,7 +26,7 @@ export default async function StudentProjects({ params }: { params: Promise<{ id
   const today = todayIn(student.school.timezone);
   return (
     <Shell user={viewer}>
-      <div><Link href={`/students/${id}`} className="small">← {student.firstName}&apos;s plan</Link><h1>{student.firstName}&apos;s projects<Info label="Projects">{"The Life Skills Project (a business) and Purpose Project (community impact) for this school year, with each step's status. Coaches review each step; everyone presents on Launch Day in May."}</Info></h1></div>
+      <div><Link href={`/students/${id}`} className="small">← {student.firstName}&apos;s plan</Link><h1>{student.firstName}&apos;s projects<Info label="Projects">{"The Presumptuous Project (a business) and Purpose Project (community impact) for this school year, with each step's status. Coaches review each step; everyone presents on Launch Day in May."}</Info></h1></div>
       {projects.length ? projects.map(p => (
         <section key={p.id} className="stack">
           <div><span className="eyebrow">{PROJECT_LABEL[p.type]} · {p.schoolYear}–{String(p.schoolYear + 1).slice(2)}</span>
@@ -40,7 +40,7 @@ export default async function StudentProjects({ params }: { params: Promise<{ id
           )}
           <ProjectRoadmap project={p} milestones={p.milestones} mode={staff ? "staff" : "family"} today={today} returnTo={`/students/${id}/projects`} />
         </section>
-      )) : <div className="empty"><b>No projects started yet</b><span>{student.firstName} starts the Life Skills and Purpose projects from their Projects page.</span></div>}
+      )) : <div className="empty"><b>No projects started yet</b><span>{student.firstName} starts the Presumptuous and Purpose projects from their Projects page.</span></div>}
     </Shell>
   );
 }

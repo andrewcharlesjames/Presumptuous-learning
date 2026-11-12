@@ -88,7 +88,8 @@ async function writeLesson(subject: SubjectId, grade: number, skill: string, var
   const user = `Subject: ${SUBJECT_BY_ID[subject].name(grade)}${strand ? ` (strand: ${strand})` : ""}
 Grade: ${level}
 Skill: ${skill}
-${VARIANT_NOTE[variant] ?? VARIANT_NOTE[3]}`;
+${VARIANT_NOTE[variant] ?? VARIANT_NOTE[3]}${subject === "ent" ? `
+This is the Presumptuous Project's Entrepreneurship & Life Skills strand. Every student runs a real small business this year. It is taught earlier than the Ontario curriculum on purpose, so keep it concrete and kid-sized for young grades (lemonade stands, bake sales, dog walking), use Canadian dollars, never suggest anything unsafe or that involves meeting strangers alone, and end the explanation by showing how the student can use this skill on their own small business.` : ""}`;
   try {
     const client = new Anthropic();
     const response = await client.beta.messages.parse({

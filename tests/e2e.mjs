@@ -352,7 +352,7 @@ ok((await otherCoach.page.request.get(`${BASE}${imgSrc}`)).status() === 404, "a 
 /* 5e. projects */
 await S.page.goto(`${BASE}/student/projects`);
 ok(await S.page.locator("text=Launch Day:").count() === 1, "projects page shows Launch Day");
-await S.page.click("button:has-text('Start my Life Skills Project')");
+await S.page.click("button:has-text('Start my Presumptuous Project')");
 await S.page.waitForURL(/\/student\/projects\/.+/);
 ok(await S.page.locator("h2:has-text('Discovery')").count() === 1, "a new project opens with the discovery questions");
 await S.page.fill("#ownTitle", "Dog walking service");
@@ -570,6 +570,7 @@ await shot(pp, "15-phone-dark-student");
 
   // the richer demo: streaks, mastery, projects, studio
   const DS = await session("demostudent");
+  globalThis.DS = DS;
   const [dsUser, dsPw] = demo["Student (any demo student)"].split(" / ");
   await DS.page.goto(`${BASE}/login`);
   await DS.page.click("button:has-text('Student')");
@@ -580,7 +581,7 @@ await shot(pp, "15-phone-dark-student");
   ok(streakN > 0, `demo student has a streak (${streakN} days)`);
   await shot(DS.page, "44-demo-student-today");
   await DS.page.goto(`${BASE}/student/projects`);
-  ok(await DS.page.locator("text=Paw Patrol Walks").count() >= 1, "demo student has a Life Skills Project under way");
+  ok(await DS.page.locator("text=Paw Patrol Walks").count() >= 1, "demo student has a Presumptuous Project under way");
   await shot(DS.page, "45-demo-projects");
   await DS.page.goto(`${BASE}/student/studio`);
   ok(await DS.page.locator("text=Snow Day Engine").count() >= 1, "demo student has a poem in the studio");
@@ -702,6 +703,45 @@ await shot(pp, "15-phone-dark-student");
   await adultLogin(C.page, coach["Email"], "brand-new-pass-9");
   ok(C.page.url().endsWith("/coach"), "coach signs in with the new password");
   await prisma.$disconnect();
+}
+
+/* 8d. Presumptuous Project learning strand and the new week */
+{
+  const DS = globalThis.DS;
+  const wd = (new Date().getUTCDay() + 6) % 7; // 0 = Monday
+  await DS.page.goto(`${BASE}/student`);
+  if (wd <= 4) {
+    ok(await DS.page.locator("text=This month:").count() === 1, "demo student's Presumptuous Project block shows this month's unit");
+    ok(await DS.page.locator("a:has-text('Learn it:')").count() + await DS.page.locator("text=All of this month").count() >= 1, "it offers the next business skill to learn");
+    const biz = DS.page.locator(".blockrow, .day > div").filter({ hasText: "Presumptuous Project" }).first();
+    ok(await DS.page.locator("text=Presumptuous Project").count() >= 1, "the timetable block is called Presumptuous Project");
+    await shot(DS.page, "56-presumptuous-today");
+    void biz;
+  }
+  const meHref = await DS.page.locator("a:has-text('My plan')").getAttribute("href");
+  await DS.page.goto(`${BASE}${meHref}`);
+  ok(await DS.page.locator("h2:has-text('Entrepreneurship & Life Skills')").count() === 1 && await DS.page.locator(".ent-year .card").count() === 10, "plan shows the year's ten business and life skills units");
+  ok(await DS.page.locator(".ent-year .chip.above").count() >= 1, "mastered business skills are ticked");
+  await shot(DS.page, "57-presumptuous-plan");
+  const learn = DS.page.locator(".ent-year a.chip").first();
+  if (await learn.count()) {
+    await learn.click();
+    await DS.page.waitForURL(/\/student\/learn\?subject=ent/);
+    ok(await DS.page.locator("text=Entrepreneurship & Life Skills").count() >= 1, "a business skill opens its lesson page");
+  }
+  await DC.page.goto(`${BASE}/coach`);
+  await DC.page.click(".card >> nth=1"); await DC.page.waitForLoadState("networkidle");
+  ok(await DC.page.locator("th:has-text('Presumptuous')").count() === 1 && await DC.page.locator("td:has-text('skills')").count() >= 1, "coach sees Presumptuous progress next to academics");
+  // report card has its own Presumptuous Project section
+  const amira = await DC.page.locator("table a:has-text('Amira')").first().getAttribute("href").catch(() => null);
+  if (amira) {
+    await DC.page.goto(`${BASE}${amira}/report/edit?term=0`);
+    ok(await DC.page.locator("label:has-text('Presumptuous Project: Entrepreneurship & Life Skills') textarea").count() === 1, "report card has a Presumptuous Project section with a drafted comment");
+  }
+  // timetable editor: per-day blocks and the default week
+  await R.page.goto(`${BASE}/school/schedule`);
+  ok(await R.page.locator("select[name=days] option:checked:has-text('Mon, Wed, Fri')").count() >= 2, "default week runs blocks on chosen weekdays");
+  await shot(R.page, "58-schedule-days");
 }
 
 /* 9. accessibility: axe-core (WCAG 2.1 A and AA) on the main screens for each role */

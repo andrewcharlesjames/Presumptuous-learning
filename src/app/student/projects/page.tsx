@@ -21,7 +21,7 @@ export default async function MyProjects() {
   return (
     <Shell user={user}>
       <div className="spread">
-        <div><span className="eyebrow">{year}–{String(year + 1).slice(2)} school year</span><h1>My projects<Info label="Your projects">{"Every year you do two big projects: a Life Skills Project (start a small business) and a Purpose Project (help your community). They run from September to June, step by step, and you present them on Launch Day in May."}</Info></h1></div>
+        <div><span className="eyebrow">{year}–{String(year + 1).slice(2)} school year</span><h1>My projects<Info label="Your projects">{"Every year you do two big projects: a Presumptuous Project (start a small business) and a Purpose Project (help your community). They run from September to June, step by step, and you present them on Launch Day in May."}</Info></h1></div>
         <div style={{ textAlign: "right" }}>
           <b>Launch Day: {fmtLong(launch)}</b><br />
           <span className="small muted">{days > 0 ? `${days} days to go` : days === 0 ? "It's today!" : "Done for this year"} · <Link href="/showcase">See the showcase</Link></span>

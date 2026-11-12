@@ -3,7 +3,7 @@ import { STATUS_LABEL } from "@/lib/assessment";
 import { SUBJECT_BY_ID, gradeShort } from "@/lib/subjects";
 import type { SubjectId } from "@/lib/bank";
 
-const ABBR: Record<SubjectId, string> = { lang: "Lang", math: "Math", sci: "Sci", soc: "Soc", fsl: "Fr", arts: "Arts", hpe: "HPE", tech: "Tech", bus: "Bus", ssh: "SSH", gce: "Career" };
+const ABBR: Record<SubjectId, string> = { lang: "Lang", math: "Math", sci: "Sci", soc: "Soc", fsl: "Fr", arts: "Arts", hpe: "HPE", tech: "Tech", bus: "Bus", ssh: "SSH", gce: "Career", ent: "Biz" };
 
 export function StatusPill({ status }: { status: Status | null }) {
   if (!status) return <span className="pill none">Not assessed</span>;

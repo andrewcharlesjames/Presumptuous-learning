@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
 import { ensureBankSeeded } from "@/lib/questions";
 import { GENERATORS } from "@/lib/generators";
-import { SUBJECTS, SUBJECT_BY_ID, gradeName, gradeShort, isSubjectId } from "@/lib/subjects";
+import { ASSESSED, SUBJECTS, SUBJECT_BY_ID, gradeName, gradeShort, isSubjectId } from "@/lib/subjects";
 import { approveDraft, deleteDraft, draftWithAI, setQuestionFlag } from "./actions";
 import { tutorConfigured } from "@/lib/tutor";
 
@@ -49,7 +49,7 @@ export default async function QuestionBank({ searchParams }: { searchParams: Pro
         <p className="muted small">Active questions per subject and grade. Aim for 10 or more in each cell so retakes and practice don&apos;t repeat. Red: fewer than 6. ✦ = math generators also cover this grade. Select a cell to see its questions.</p>
         <div className="tablewrap"><table>
           <thead><tr><th>Subject</th>{POOLS.map(g => <th key={g} className="num">{g === 13 ? "12+" : gradeShort(g)}</th>)}</tr></thead>
-          <tbody>{SUBJECTS.map(s => (
+          <tbody>{ASSESSED.map(s => (
             <tr key={s.id}>
               <td className="small"><b>{s.name(5)}</b></td>
               {POOLS.map(g => {

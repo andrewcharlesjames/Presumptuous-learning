@@ -21,7 +21,7 @@ async function ownProject(id: string) {
   return { user, school, p };
 }
 
-/** Start this year's Life Skills or Purpose project with its nine milestones. */
+/** Start this year's Presumptuous or Purpose project with its nine milestones. */
 export async function startProject(form: FormData) {
   const { user, school } = await requireSchoolUser(["STUDENT"]);
   const type = String(form.get("type"));

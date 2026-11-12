@@ -1,3 +1,4 @@
+import { EntYear } from "@/components/EntYear";
 import { Info } from "@/components/Info";
 import Link from "next/link";
 import { auditView } from "@/lib/audit";
@@ -91,6 +92,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
     staff ? skillMenu([grade]) : Promise.resolve({}),
   ]);
   const completed = await completion(assignments);
+  const bizProject = await db.project.findFirst({ where: { studentId: id, type: "LIFE_SKILLS" }, orderBy: { schoolYear: "desc" }, select: { title: true } });
   const hasReport = !!(await db.reportCard.findFirst({ where: { studentId: id, status: "FINAL" }, select: { id: true } }));
   const subjectOptions = subjectsForGrade(grade).map(x => ({ id: x.id, name: x.name(grade) }));
   const h0 = (r: StoredResult) => grade + (r.level === 4 ? 1 : r.level === 3 ? 0 : r.level === 2 ? -1 : -2);
@@ -179,6 +181,8 @@ export default async function StudentProfile({ params, searchParams }: { params:
           {planData && <PlanView plan={planData} />}
         </>
       )}
+
+      <EntYear grade={grade} mastered={new Set(skills.filter(k => k.state === "MASTERED").map(k => `${k.subject}|${k.skill}`))} today={today} self={self} projectTitle={bizProject?.title} />
 
       {(assignments.length > 0 || staff) && (
         <section className="card">

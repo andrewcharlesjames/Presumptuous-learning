@@ -23,7 +23,7 @@ For each idea: a short title, a one-sentence oneLiner, a one- or two-sentence wh
 If an answer is empty, unclear or inappropriate, ignore it and work from the rest.`;
 
 const KIND: Record<ProjectTypeName, string> = {
-  LIFE_SKILLS: "Life Skills Project: a small business or venture the student starts and runs (a product, a service, an event or a club that charges a small fee).",
+  LIFE_SKILLS: "Presumptuous Project (life skills and business): a small business or venture the student starts and runs (a product, a service, an event or a club that charges a small fee).",
   PURPOSE: "Purpose Project: a community-impact or give-back project that helps people, animals or the environment, with an impact that can be measured.",
 };
 

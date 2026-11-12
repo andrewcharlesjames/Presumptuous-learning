@@ -189,6 +189,7 @@ model ScheduleBlock {
   title    String
   kind     BlockKind
   focus    String    @default("")
+  days     Int[]     @default([0, 1, 2, 3, 4]) // weekdays it runs: 0 = Monday … 4 = Friday
 
   @@index([schoolId, position])
 }

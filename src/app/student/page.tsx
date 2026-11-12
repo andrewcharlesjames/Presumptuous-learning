@@ -11,6 +11,8 @@ import { clockIn, fmtClock, fmtDate, fmtLong, isoDate, schoolYearOf, weekdayInde
 import { gradeName, subjectsForGrade } from "@/lib/subjects";
 import { BLOCK_KIND_LABEL, type BlockKindName } from "@/lib/templates";
 import { artsPromptFor, lifePromptFor, mindfulnessFor } from "@/lib/prompts";
+import { unitFor } from "@/lib/presumptuous";
+import { EntToday } from "@/components/EntToday";
 import { dayBounds, dayStatuses, streaks, weekRange } from "@/lib/schoolday";
 import { startAssessment } from "./actions";
 import { startPractice } from "./practice/actions";
@@ -48,17 +50,19 @@ export default async function StudentToday() {
   const learningDone = todaySessions.length > 0;
   const wd = weekdayIndex(info.date);
   const life = lifePromptFor(info.date, grade, wd);
+  const unit = unitFor(info.date);
   const mindful = mindfulnessFor(info.date);
   const st = streak.get(user.id) ?? { current: 0, best: 0 };
   const steps = [
     { label: "Check in", done: !!log?.checkedInAt },
     { label: "Learn", done: learningDone },
     { label: "Arts", done: !!log?.artsDone },
-    { label: "Life skills", done: !!log?.lifeDone },
+    { label: "Presumptuous", done: !!log?.lifeDone },
     { label: "Reflect", done: !!log?.reflectedAt },
   ];
   const doneCount = steps.filter(s => s.done).length;
-  const kinds = new Set(blocks.map(b => b.kind));
+  const dayBlocks = blocks.filter(b => b.days.includes(wd)); // blocks can run on some weekdays only
+  const kinds = new Set(dayBlocks.map(b => b.kind));
 
   const answered = inProgress ? (inProgress.answers as (number | null)[]).filter(a => a !== null).length : 0;
   const assessmentCard = inProgress ? (
@@ -107,12 +111,13 @@ export default async function StudentToday() {
       case "ARTS": return <PromptTask kind="arts" label="Today's creative prompt" prompt={artsPromptFor(info.date, grade)} done={!!log?.artsDone} studioHref="/student/studio" />;
       case "LIFE_SKILLS": return (
         <>
-          <PromptTask kind="life" label={life.track} prompt={life.prompt} done={!!log?.lifeDone} />
+          <EntToday unit={unit} grade={grade} mastered={mastered} projectTitle={myProjects.find(p => p.type === "LIFE_SKILLS")?.title} />
+          <PromptTask kind="life" label={`Warm-up · ${life.track}`} prompt={life.prompt} done={!!log?.lifeDone} />
           <div className="stack" style={{ gap: 4, marginTop: 8 }}>
             {myProjects.length ? myProjects.map(pr => {
               const nx = pr.milestones.find(m => m.status !== "APPROVED");
               return <p key={pr.id} className="small"><b>{PROJECT_LABEL[pr.type]}:</b> {nx ? <>next step <Link href={`/student/projects/${pr.id}`}>{nx.title}</Link>, due {fmtDate(nx.dueDate, { month: "short", day: "numeric" })}{nx.status === "NEEDS_WORK" && <> <span className="pill below">Needs work</span></>}</> : "all steps approved"}</p>;
-            }) : <p className="small"><Link href="/student/projects">Start your Life Skills and Purpose projects</Link></p>}
+            }) : <p className="small"><Link href="/student/projects">Start your Presumptuous and Purpose projects</Link></p>}
           </div>
         </>
       );
@@ -180,10 +185,10 @@ export default async function StudentToday() {
       <section className="card">
         <div className="spread"><h2>{info.schoolDay ? "Your school day" : "Your learning plan"}<Info label="Your school day">{"This follows your school's real timetable. Each block shows what to do in it. In Core Academics, \"Learn it\" opens a lesson and then a 5-question check; \"Practice now\" gives you 5 questions with answers shown right away. Labels: Stretch = work from the next grade up, Secure = practice at your grade, Repair = catch up on an earlier skill."}</Info></h2></div>
         {info.events.filter(e => !e.noSchool).map(e => <p key={e.id} className="small"><b>Today:</b> {e.title}</p>)}
-        {info.schoolDay && blocks.length ? (
-          <div className="day">{blocks.map(b => {
+        {info.schoolDay && dayBlocks.length ? (
+          <div className="day">{dayBlocks.map(b => {
             const isNow = now >= b.start && now < b.end;
-            const isNext = !isNow && now < b.start && !blocks.some(x => x.start < b.start && x.start > now);
+            const isNext = !isNow && now < b.start && !dayBlocks.some(x => x.start < b.start && x.start > now);
             return (
               <div key={b.id} className={`blockrow ${isNow ? "now" : ""}`} id={isNow ? "now" : undefined}>
                 <div className="t"><b>{fmtClock(b.start)}</b>{fmtClock(b.end)}</div>

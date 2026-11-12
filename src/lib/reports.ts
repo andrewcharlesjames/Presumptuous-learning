@@ -7,7 +7,8 @@ import { completion } from "./assignments";
 import { latestScored, masteredSet } from "./records";
 import { nextLevelSkills } from "./plan";
 import { gradeName } from "./subjects";
-import { draftComment, markFor, suggestSkills, type Evidence, type SkillRatings, type Term } from "./report-rules";
+import { ENT, ENT_NAME, skillsBetween } from "./presumptuous";
+import { draftComment, draftEntComment, entLevel, markFor, suggestSkills, type Evidence, type SkillRatings, type Term } from "./report-rules";
 
 /** The calendar window a term reports on. */
 export function termRange(school: Pick<School, "yearStart" | "yearEnd">, schoolYear: number, term: Term): { from: Date; to: Date } {
@@ -61,6 +62,21 @@ export async function reportFacts(school: School, student: { id: string; firstNa
       draft: draftComment({ first: student.firstName, subject: r.name, status: r.status, workingGrade: working, mastered: masteredRows.filter(m => m.subject === r.sid).map(m => m.skill), next }),
     };
   });
+  // Presumptuous Project: Entrepreneurship & Life Skills, from this term's units so far
+  const today = todayIn(school.timezone);
+  const until = to < today ? to : today;
+  if (until >= from) {
+    const taught = skillsBetween(from, until, grade);
+    const got = taught.filter(t => mastered.has(`${ENT}|${t.skill}`));
+    const project = await db.project.findFirst({ where: { studentId: student.id, type: "LIFE_SKILLS", schoolYear }, include: { milestones: true } });
+    const due = project?.milestones.filter(m => m.dueDate <= until) ?? [];
+    const { level, status } = entLevel(got.length, taught.length);
+    subjects.push({
+      sid: ENT, name: `Presumptuous Project: ${ENT_NAME}`, level, status, working: gradeName(grade), mark: markFor(term, grade, level, status),
+      draft: draftEntComment({ first: student.firstName, project: project?.title || null, mastered: got.map(g => g.skill), taught: taught.length,
+        stepsApproved: due.filter(m => m.status === "APPROVED").length, stepsDue: due.length, next: taught.filter(t => !mastered.has(`${ENT}|${t.skill}`)).map(t => t.skill) }),
+    });
+  }
   return { subjects, evidence: ev, suggested: suggestSkills(ev) as SkillRatings, assessedAt: scored?.assessment.completedAt ?? null, from, to };
 }
 
