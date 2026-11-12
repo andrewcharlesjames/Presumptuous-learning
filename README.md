@@ -60,6 +60,8 @@ BASE=http://localhost:3000 ADMIN_EMAIL=... ADMIN_PASSWORD=... node tests/e2e.mjs
 
 Every push to `main` redeploys automatically. After your first sign-in you can remove `ADMIN_PASSWORD` from Railway; it's only used to create the first admin.
 
+**Locked out of the platform admin account?** Changing `ADMIN_PASSWORD` alone does nothing once the admin exists. Set `ADMIN_EMAIL` to the admin's email, `ADMIN_PASSWORD` to a new password (12+ characters) and add `ADMIN_RESET_PASSWORD` = `yes`. Railway redeploys; the start-up log says `reset the password for platform admin …`. Sign in, then delete `ADMIN_RESET_PASSWORD`, or it resets again on every deploy.
+
 ## Project layout
 
 ```
