@@ -6,13 +6,14 @@ import { CheckIn, PromptTask, Reflect, WeekStrip } from "@/components/DayParts";
 import { dayInfo, latestScored, masteredSet } from "@/lib/records";
 import { learnHref } from "@/lib/links";
 import { buildPlan, MODE_LABEL, type PlanBlock } from "@/lib/plan";
-import { clockIn, fmtClock, fmtLong, isoDate, weekdayIndex, todayIn } from "@/lib/dates";
+import { clockIn, fmtClock, fmtDate, fmtLong, isoDate, weekdayIndex, todayIn } from "@/lib/dates";
 import { gradeName, subjectsForGrade } from "@/lib/subjects";
 import { BLOCK_KIND_LABEL, type BlockKindName } from "@/lib/templates";
 import { artsPromptFor, lifePromptFor, mindfulnessFor } from "@/lib/prompts";
 import { dayBounds, dayStatuses, streaks, weekRange } from "@/lib/schoolday";
 import { startAssessment } from "./actions";
 import { startPractice } from "./practice/actions";
+import { completion, describe } from "@/lib/assignments";
 
 export const metadata = { title: "Today" };
 
@@ -33,6 +34,10 @@ export default async function StudentToday() {
     streaks(school, [user.id]),
   ]);
   const now = clockIn(school.timezone);
+  const myAssignments = await db.assignment.findMany({ where: { targets: { some: { studentId: user.id } } }, include: { targets: { where: { studentId: user.id } }, createdBy: true }, orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }], take: 20 });
+  const finishedA = await completion(myAssignments);
+  const openA = myAssignments.filter(a => !finishedA.has(`${a.id}:${user.id}`));
+  const recentDone = myAssignments.filter(a => { const d = finishedA.get(`${a.id}:${user.id}`); return d && d >= start; });
   const plan = scored ? buildPlan({ grade: scored.assessment.grade, results: scored.results, today: info.date, yearEnd: school.yearEnd, skillsAt: scored.skillsAt, mastered }) : null;
   const tasks = plan?.today.blocks.filter(b => b.sid) ?? [];
   const habits = plan?.today.blocks.filter(b => !b.sid) ?? [];
@@ -114,6 +119,34 @@ export default async function StudentToday() {
       </div>
 
       {assessmentCard}
+
+      {(openA.length > 0 || recentDone.length > 0) && (
+        <section className="card" style={{ borderColor: "var(--accent)" }}>
+          <div className="spread"><h2>From your {school.coachTitle.toLowerCase()}</h2><span className="small muted">{openA.length} to do</span></div>
+          {openA.map(a => {
+            const overdue = a.dueDate && a.dueDate < info.date;
+            return (
+              <div key={a.id} className="card tight" style={{ background: "var(--paper)" }}>
+                <div className="spread" style={{ alignItems: "center" }}>
+                  <b>{describe(a)}</b>
+                  {a.dueDate && <span className={`pill ${overdue ? "below" : "at"}`}>{overdue ? "Overdue · " : "Due "}{fmtDate(a.dueDate, { weekday: "short", month: "short", day: "numeric" })}</span>}
+                </div>
+                {a.note && <p className="small">“{a.note}” — {a.createdBy.firstName}</p>}
+                <div className="row" style={{ gap: 8 }}>
+                  {a.kind === "ASSESSMENT" ? (
+                    <form action={startAssessment}><input type="hidden" name="fresh" value="1" /><button className="btn small primary">Start the assessment</button></form>
+                  ) : a.kind === "MASTER_SKILL" ? (
+                    <Link className="btn small primary" href={learnHref(a.subject, a.grade, a.skill)}>Learn it</Link>
+                  ) : (
+                    <form action={startPractice}><input type="hidden" name="subject" value={a.subject} /><input type="hidden" name="skill" value={a.skill} /><input type="hidden" name="grade" value={a.grade} /><button className="btn small primary">Practise now</button></form>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {recentDone.map(a => <p key={a.id} className="small"><span className="pill above">Done</span> {describe(a)}</p>)}
+        </section>
+      )}
 
       {info.schoolDay ? (
         <section className="card">

@@ -232,13 +232,15 @@ export function buildPlan({ grade: g, results: rs, today, yearEnd, extraMileston
 export type Plan = ReturnType<typeof buildPlan>;
 
 /** Next-grade skills not yet shown on the assessment: used for "requirements to reach the next level". */
-export function nextLevelSkills(r: SubjectResult, grade: number, skillsAt: SkillsAt = builtinSkills): string[] {
+export function nextLevelSkills(r: SubjectResult, grade: number, skillsAt: SkillsAt = builtinSkills): { skill: string; grade: number }[] {
   const at = skillsAt(r.sid);
   const target = r.status === "below" ? Math.max(r.working + 1, 0) : r.working + 1;
-  const missedAtTarget = r.items.filter(x => !x.ok && x.p === target).map(x => x.d.skill);
-  const missedBelow = r.items.filter(x => !x.ok && x.p <= grade).map(x => x.d.skill);
-  const list = [...new Set([...missedAtTarget, ...(r.status === "below" ? missedBelow : []), ...(target <= 13 ? at(target) : [])])];
-  return list.slice(0, 4);
+  const out: { skill: string; grade: number }[] = [];
+  const add = (skill: string, g: number) => { if (!out.some(o => o.skill === skill)) out.push({ skill, grade: g }); };
+  r.items.filter(x => !x.ok && x.p === target).forEach(x => add(x.d.skill, x.p));
+  if (r.status === "below") r.items.filter(x => !x.ok && x.p <= grade).forEach(x => add(x.d.skill, x.p));
+  if (target <= 13) at(target).forEach(s => add(s, target));
+  return out.slice(0, 4);
 }
 
 /** The grade level a subject needs to show next. */

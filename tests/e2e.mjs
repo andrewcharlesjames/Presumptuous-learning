@@ -264,6 +264,44 @@ if (schoolDay) {
   ok(true, "(not a school day today: skipped check-in steps)");
 }
 
+/* 5c. coach tools: assign work, share a note */
+await C.page.goto(`${BASE}/coach`);
+await C.page.click(".card:has(h2) >> nth=0").catch(() => {});
+await C.page.goto(C.page.url().includes("/coach/classes/") ? C.page.url() : `${BASE}/coach`);
+if (!C.page.url().includes("/coach/classes/")) { await C.page.locator("a.card").first().click(); await C.page.waitForURL(/\/coach\/classes\//); }
+await C.page.selectOption("#as-kind", "PRACTICE");
+await C.page.fill("#as-note", "Do this before Friday");
+await C.page.click("button:has-text('Assign')");
+ok((await flashText(C.page, "Assigned to")).includes("Assigned to 1 student"), "coach assigns practice to the class");
+ok(await C.page.locator("h2:has-text('Assignments')").count() === 1 && await C.page.locator("text=0/1").count() > 0, "class page lists the assignment with completion");
+await shot(C.page, "23-coach-assignments");
+await S.page.goto(`${BASE}/student`);
+ok(await S.page.locator("h2:has-text('From your coach')").count() === 1 && await S.page.locator("text=Do this before Friday").count() === 1, "student sees the assignment on Today");
+await S.page.locator("section:has(h2:has-text('From your coach')) button:has-text('Practise now')").first().click();
+await S.page.waitForURL(/\/student\/practice\//);
+for (let i = 0; i < 5; i++) {
+  await S.page.locator(".opt").first().click();
+  await S.page.click("button:has-text('Check')");
+  await S.page.waitForSelector(".flash[role=status]");
+  const label = await S.page.locator("button.primary").innerText();
+  await S.page.click("button.primary");
+  if (/score/i.test(label)) break;
+}
+await S.page.goto(`${BASE}/student`);
+ok(await S.page.locator("section:has(h2:has-text('From your coach')) .pill:has-text('Done')").count() >= 1, "finishing the practice marks the assignment done");
+const studentLink = await C.page.locator("table a[href^='/students/']").first().getAttribute("href");
+await C.page.goto(`${BASE}${studentLink}`);
+await C.page.fill("#note-body", "Great effort this week. Keep overreaching!");
+await C.page.check("#note-shared");
+await C.page.click("button:has-text('Save note')");
+ok((await flashText(C.page, "Note saved")).includes("shared"), "coach saves a note shared with the family");
+const assignBtns = C.page.locator("form:has(input[value=MASTER_SKILL]) button:has-text('Assign')");
+if (await assignBtns.count() > 0) {
+  await assignBtns.first().click();
+  ok((await flashText(C.page, "Assigned to")).includes("1 student"), "coach assigns a next-level requirement in one click");
+}
+await shot(C.page, "24-student-profile-coach");
+
 /* 6. parent joins with the family code */
 const F = await session("parent");
 await F.page.goto(`${BASE}/join`);
@@ -275,6 +313,7 @@ await F.page.waitForURL(/\/parent/);
 ok((await F.page.locator("h2").first().innerText()).includes("Jordan"), "parent sees their child");
 if (schoolDay) ok(await F.page.locator("text=Checked in feeling").count() === 1 && await F.page.locator("text=How to check my work").count() === 1, "parent sees today's check-in and reflection");
 await shot(F.page, "22-parent-day");
+ok(await F.page.locator("text=Great effort this week").count() === 1, "parent sees the coach's shared note");
 await shot(F.page, "12-parent");
 await F.page.click("a:has-text('See plan')");
 await F.page.waitForURL(/\/students\//);

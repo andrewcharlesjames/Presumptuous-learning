@@ -96,6 +96,10 @@ model User {
   practice        PracticeSession[]
   skills          SkillProgress[]
   dailyLogs       DailyLog[]
+  assignmentsMade Assignment[]       @relation("AssignmentCreator")
+  assignedWork    AssignmentTarget[] @relation("AssignmentStudent")
+  notesAbout      CoachNote[]        @relation("NoteAbout")
+  notesWritten    CoachNote[]        @relation("NoteAuthor")
   attendance      Attendance[]   @relation("AttendanceStudent")
   markedAttendance Attendance[]  @relation("AttendanceMarker")
 
@@ -342,4 +346,52 @@ model DailyLog {
   updatedAt    DateTime  @updatedAt
 
   @@unique([studentId, date])
+}
+
+// ---------------- Phase 4: coach tools ----------------
+
+enum AssignmentKind {
+  MASTER_SKILL // learn the lesson and pass the mastery check
+  PRACTICE // finish a practice set on the skill
+  ASSESSMENT // retake the placement assessment
+}
+
+model Assignment {
+  id          String             @id @default(cuid())
+  schoolId    String
+  createdById String
+  createdBy   User               @relation("AssignmentCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  kind        AssignmentKind
+  subject     String             @default("")
+  grade       Int                @default(0)
+  skill       String             @default("")
+  note        String             @default("")
+  dueDate     DateTime?          @db.Date
+  createdAt   DateTime           @default(now())
+  targets     AssignmentTarget[]
+
+  @@index([schoolId, createdAt])
+}
+
+model AssignmentTarget {
+  assignmentId String
+  studentId    String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student      User       @relation("AssignmentStudent", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([assignmentId, studentId])
+  @@index([studentId])
+}
+
+model CoachNote {
+  id        String   @id @default(cuid())
+  studentId String
+  student   User     @relation("NoteAbout", fields: [studentId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  shared    Boolean  @default(false) // visible to the student and their family
+  createdAt DateTime @default(now())
+
+  @@index([studentId, createdAt])
 }

@@ -10,6 +10,7 @@ import { addDays, fmtStamp, isoDate, todayIn } from "@/lib/dates";
 import { dayStatuses, streaks, weekRange } from "@/lib/schoolday";
 import { moodLabel } from "@/lib/prompts";
 import { WeekStrip } from "@/components/DayParts";
+import { completion } from "@/lib/assignments";
 import { gradeName, SUBJECT_BY_ID } from "@/lib/subjects";
 import { linkChild } from "./actions";
 
@@ -34,6 +35,11 @@ export default async function ParentHome() {
     streaks(school, ids),
     db.dailyLog.findMany({ where: { studentId: { in: ids }, date: info.date } }),
   ]);
+  const [kidAssignments, sharedNotes] = await Promise.all([
+    db.assignment.findMany({ where: { targets: { some: { studentId: { in: ids } } } }, include: { targets: true }, orderBy: { createdAt: "desc" }, take: 50 }),
+    db.coachNote.findMany({ where: { studentId: { in: ids }, shared: true }, include: { author: true }, orderBy: { createdAt: "desc" }, take: 20 }),
+  ]);
+  const doneA = await completion(kidAssignments);
   return (
     <Shell user={user}>
       <div><span className="eyebrow">{school.name}</span><h1>My children</h1></div>
@@ -68,6 +74,17 @@ export default async function ParentHome() {
                     <p className="small">{d?.learning ? `${d.learning} learning activit${d.learning === 1 ? "y" : "ies"} finished.` : "No lessons or practice finished yet."}</p>
                     {l?.reflectedAt && <p className="small">Reflection: “{l.learned}”{l.question && <> · Question: “{l.question}”</>}</p>}
                   </div>
+                );
+              })()}
+              {(() => {
+                const mine = kidAssignments.filter(a => a.targets.some(t => t.studentId === k.id));
+                const open = mine.filter(a => !doneA.has(`${a.id}:${k.id}`));
+                const note = sharedNotes.find(n => n.studentId === k.id);
+                return (
+                  <>
+                    {mine.length > 0 && <p className="small">Assignments: <b>{mine.length - open.length}</b> done, <b>{open.length}</b> to do{open.some(a => a.dueDate && a.dueDate < info.date) && <> · <span className="pill below">overdue work</span></>}</p>}
+                    {note && <p className="small" style={{ padding: "8px 10px", borderLeft: "3px solid var(--accent)" }}>“{note.body.slice(0, 220)}{note.body.length > 220 ? "…" : ""}” — {note.author.firstName}, {school.coachTitle.toLowerCase()}</p>}
+                  </>
                 );
               })()}
               <p className="small"><b>{streakMap.get(k.id)?.current ?? 0}</b>-day streak</p>

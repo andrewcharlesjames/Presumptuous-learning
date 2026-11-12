@@ -10,10 +10,13 @@ import { latestScored, countStatuses } from "@/lib/records";
 import { buildPlan, MODE_LABEL, nextLevelSkills, nextTarget } from "@/lib/plan";
 import { type Status, type StoredResult } from "@/lib/assessment";
 import { addDays, fmtDate, fmtStamp, isoDate, MONTHS, todayIn, WEEKDAYS } from "@/lib/dates";
-import { gradeName, plural } from "@/lib/subjects";
-import { SUBJECT_BY_ID, isSubjectId } from "@/lib/subjects";
+import { gradeName } from "@/lib/subjects";
+import { SUBJECT_BY_ID, isSubjectId, plural, subjectsForGrade } from "@/lib/subjects";
 import { practiceSummary } from "@/lib/practice";
 import { learnHref } from "@/lib/links";
+import { completion, describe, skillMenu } from "@/lib/assignments";
+import { addNote, createAssignment, deleteNote } from "@/app/coach/assign-actions";
+import { AssignForm } from "@/components/AssignForm";
 import { dayStatuses, streaks, weekRange } from "@/lib/schoolday";
 import { effortLabel, moodLabel } from "@/lib/prompts";
 import { WeekStrip } from "@/components/DayParts";
@@ -74,6 +77,19 @@ export default async function StudentProfile({ params, searchParams }: { params:
     db.dailyLog.findMany({ where: { studentId: id, date: { gte: week.from, lte: week.to } }, orderBy: { date: "asc" } }),
   ]);
   const st = streakMap.get(id) ?? { current: 0, best: 0 };
+  const isFamily = self || viewer.role === "PARENT";
+  const [assignments, notes, menu] = await Promise.all([
+    db.assignment.findMany({ where: { targets: { some: { studentId: id } } }, include: { targets: true, createdBy: true }, orderBy: { createdAt: "desc" }, take: 20 }),
+    db.coachNote.findMany({ where: { studentId: id, ...(isFamily ? { shared: true } : {}) }, include: { author: true }, orderBy: { createdAt: "desc" }, take: 30 }),
+    staff ? skillMenu([grade]) : Promise.resolve({}),
+  ]);
+  const completed = await completion(assignments);
+  const subjectOptions = subjectsForGrade(grade).map(x => ({ id: x.id, name: x.name(grade) }));
+  const h0 = (r: StoredResult) => grade + (r.level === 4 ? 1 : r.level === 3 ? 0 : r.level === 2 ? -1 : -2);
+  const weeklyMastered = Array.from({ length: 6 }, (_, i) => {
+    const end = addDays(today, -7 * i + 1), start = addDays(end, -7);
+    return skills.filter(k => k.masteredAt && k.masteredAt >= start && k.masteredAt < end).length;
+  }).reverse();
 
   return (
     <Shell user={viewer}>
@@ -110,8 +126,27 @@ export default async function StudentProfile({ params, searchParams }: { params:
                     <td><b>{r.name}</b><br /><span className="small muted num">{r.correct}/{r.total} correct</span></td>
                     <td><Ruler status={r.status} grade={scored.assessment.grade} working={r.working} /></td>
                     <td><StatusPill status={r.status} /><br /><span className="small muted">Level {r.level} · working at {r.working < 0 ? "pre-Kindergarten" : gradeName(r.working)} level</span></td>
-                    <td className="small"><span className="muted">Next: {target}</span>
-                      <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>{req.slice(0, 4).map(s => <li key={s}>{s}</li>)}</ul>
+                    <td className="small" style={{ minWidth: 320 }}><span className="muted">Next: {target}</span>
+                      <ul style={{ margin: "6px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>{req.map(q => {
+                        const k = skills.find(x => x.subject === r.sid && x.skill === q.skill);
+                        const state = k?.state === "MASTERED" ? "mastered" : k ? (k.attempts >= 3 ? "help" : "learning") : "new";
+                        return (
+                          <li key={q.skill} className="row" style={{ gap: 8 }}>
+                            <span className={`chip ${state === "mastered" ? "above" : state === "help" ? "below" : state === "learning" ? "at" : ""}`}>{state === "mastered" ? "✓ Mastered" : state === "help" ? "Needs help" : state === "learning" ? "Learning" : "Not started"}</span>
+                            {self && state !== "mastered" ? <Link href={learnHref(r.sid, q.grade, q.skill)}>{q.skill}</Link> : <span>{q.skill}</span>}
+                            <span className="muted small">{gradeName(q.grade)}</span>
+                            {staff && state !== "mastered" && (
+                              <form action={createAssignment}>
+                                <input type="hidden" name="returnTo" value={`/students/${student.id}`} /><input type="hidden" name="kind" value="MASTER_SKILL" />
+                                <input type="hidden" name="subject" value={r.sid} /><input type="hidden" name="grade" value={q.grade} />
+                                <input type="hidden" name="skill" value={q.skill} /><input type="hidden" name="student" value={student.id} />
+                                <button className="btn small">Assign</button>
+                              </form>
+                            )}
+                          </li>
+                        );
+                      })}</ul>
+                      <p className="small muted" style={{ marginTop: 4 }}>{req.filter(q => skills.some(x => x.subject === r.sid && x.skill === q.skill && x.state === "MASTERED")).length} of {req.length} requirements mastered</p>
                       {(staff || viewer.role === "PARENT" || self) && (
                         <details className="items"><summary>See the {r.total} questions</summary>
                           <div className="itemlist">{r.items.map(x => (
@@ -130,6 +165,75 @@ export default async function StudentProfile({ params, searchParams }: { params:
 
           {planData && <PlanView plan={planData} />}
         </>
+      )}
+
+      {(assignments.length > 0 || staff) && (
+        <section className="card">
+          <h2>Assignments</h2>
+          {assignments.length ? (
+            <div className="stack" style={{ gap: 6 }}>{assignments.map(a => {
+              const doneAt = completed.get(`${a.id}:${student.id}`);
+              const overdue = !doneAt && a.dueDate && a.dueDate < today;
+              return (
+                <div key={a.id} className="row" style={{ gap: 8 }}>
+                  <span className={`pill ${doneAt ? "above" : overdue ? "below" : "at"}`}>{doneAt ? "Done" : overdue ? "Overdue" : "To do"}</span>
+                  <span>{describe(a)}</span>
+                  {a.dueDate && <span className="small muted">due {fmtDate(a.dueDate, { weekday: "short", month: "short", day: "numeric" })}</span>}
+                  {a.note && <span className="small muted">“{a.note}”</span>}
+                  <span className="small muted">from {a.createdBy.firstName}</span>
+                </div>
+              );
+            })}</div>
+          ) : <p className="muted small">No assignments yet.</p>}
+          {staff && <AssignForm students={[{ id: student.id, name: student.firstName }]} menu={menu} subjects={subjectOptions} returnTo={`/students/${student.id}`} defaultGrade={grade} />}
+        </section>
+      )}
+
+      {(staff || notes.length > 0) && (
+        <section className="card">
+          <h2>{staff ? `Notes from ${plural(school.coachTitle).toLowerCase()}` : `Notes from your ${school.coachTitle.toLowerCase()}`}</h2>
+          {notes.length ? notes.map(n => (
+            <div key={n.id} className="card tight" style={{ background: "var(--paper)" }}>
+              <p style={{ whiteSpace: "pre-wrap" }}>{n.body}</p>
+              <div className="spread small muted" style={{ alignItems: "center" }}>
+                <span>{n.author.firstName} {n.author.lastName} · {fmtStamp(n.createdAt, school.timezone, { month: "short", day: "numeric", year: "numeric" })}{staff && (n.shared ? " · shared with student and family" : " · staff only")}</span>
+                {staff && (n.authorId === viewer.id || viewer.role === "SCHOOL_ADMIN") && <form action={deleteNote}><input type="hidden" name="id" value={n.id} /><button className="btn small">Delete</button></form>}
+              </div>
+            </div>
+          )) : <p className="muted small">No notes yet.</p>}
+          {staff && (
+            <form action={addNote} className="stack" style={{ gap: 8 }}>
+              <input type="hidden" name="studentId" value={student.id} />
+              <label className="field">Add a note<textarea id="note-body" name="body" required style={{ fontFamily: "inherit", fontSize: ".95rem", minHeight: 80 }} /></label>
+              <label className="check"><input type="checkbox" name="shared" id="note-shared" />Share with {student.firstName} and their family</label>
+              <div><button className="btn small primary">Save note</button></div>
+            </form>
+          )}
+        </section>
+      )}
+
+      {history.length > 1 && (
+        <section className="card">
+          <h2>Progress over time</h2>
+          <p className="small muted">The grade level each subject was working at, assessment by assessment.</p>
+          <div className="tablewrap" style={{ border: 0 }}><table>
+            <thead><tr><th>Subject</th>{[...history].reverse().map(h => <th key={h.id} className="num">{fmtStamp(h.completedAt!, school.timezone, { month: "short", day: "numeric" })}</th>)}<th>Change</th></tr></thead>
+            <tbody>{[...new Set(history.flatMap(h => ((h.results ?? []) as StoredResult[]).map(r => r.sid)))].map(sid => {
+              const series = [...history].reverse().map(h => ((h.results ?? []) as StoredResult[]).find(r => r.sid === sid));
+              const lvl = (r?: StoredResult) => r ? (r.working ?? h0(r)) : null;
+              const first = lvl(series.find(Boolean)), last = lvl([...series].reverse().find(Boolean));
+              const delta = first !== null && last !== null ? last - first : 0;
+              return (
+                <tr key={sid}>
+                  <td className="small"><b>{isSubjectId(sid) ? SUBJECT_BY_ID[sid].name(grade) : sid}</b></td>
+                  {series.map((r, i) => <td key={i} className="num small">{r ? <span className={`chip ${r.status}`}>{lvl(r)! < 0 ? "Pre-K" : lvl(r) === 0 ? "K" : `Gr ${lvl(r)}`}</span> : "—"}</td>)}
+                  <td className="small">{delta > 0 ? <span className="pill above">+{delta} grade{delta > 1 ? "s" : ""}</span> : delta < 0 ? <span className="pill below">{delta}</span> : <span className="muted">No change</span>}</td>
+                </tr>
+              );
+            })}</tbody>
+          </table></div>
+          <p className="small">Skills mastered per week (last 6 weeks): {weeklyMastered.map((n, i) => <span key={i} className="chip" style={{ marginRight: 4 }}>{n}</span>)}</p>
+        </section>
       )}
 
       <section className="card">

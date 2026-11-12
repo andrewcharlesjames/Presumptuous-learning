@@ -6,10 +6,13 @@ import { Shell } from "@/components/Shell";
 import { SubjectChips } from "@/components/Status";
 import { dayInfo, latestResults } from "@/lib/records";
 import { practiceSummary } from "@/lib/practice";
+import { completion, describe, skillMenu } from "@/lib/assignments";
+import { deleteAssignment } from "@/app/coach/assign-actions";
+import { AssignForm } from "@/components/AssignForm";
 import { dayStatuses, streaks } from "@/lib/schoolday";
 import { moodLabel } from "@/lib/prompts";
-import { addDays, fmtLong, fmtStamp, isoDate, parseIsoDate, todayIn } from "@/lib/dates";
-import { gradeShort, plural } from "@/lib/subjects";
+import { addDays, fmtDate, fmtLong, fmtStamp, isoDate, parseIsoDate, todayIn } from "@/lib/dates";
+import { gradeShort, plural, subjectsForGrade } from "@/lib/subjects";
 import { saveAttendance } from "../../actions";
 import { resetPassword } from "@/app/school/actions";
 
@@ -49,6 +52,13 @@ export default async function ClassView({ params, searchParams }: { params: Prom
     streaks(school, ids),
   ]);
   const logOf = new Map(logs.map(l => [l.studentId, l]));
+  const [classAssignments, menu] = await Promise.all([
+    db.assignment.findMany({ where: { schoolId: school.id, targets: { some: { studentId: { in: ids } } } }, include: { targets: true, createdBy: true }, orderBy: { createdAt: "desc" }, take: 30 }),
+    skillMenu(cls.grades.length ? cls.grades : students.map(s => s.grade ?? 0).concat([0]).slice(0, 13)),
+  ]);
+  const done = await completion(classAssignments);
+  const classGrade = cls.grades.length ? Math.min(...cls.grades) : (students[0]?.grade ?? 0);
+  const subjectOptions = subjectsForGrade(Math.max(...(cls.grades.length ? cls.grades : [classGrade]))).map(x => ({ id: x.id, name: x.name(classGrade) }));
   const lowMood = logs.filter(l => (l.mood ?? 5) <= 2);
 
   return (
@@ -87,6 +97,31 @@ export default async function ClassView({ params, searchParams }: { params: Prom
           </table></div>
         </section>
       )}
+
+      <section className="stack">
+        <h2>Assignments</h2>
+        {classAssignments.length ? (
+          <div className="tablewrap"><table>
+            <thead><tr><th>Assignment</th><th>Due</th><th>Done</th><th>Still to do</th><th></th></tr></thead>
+            <tbody>{classAssignments.map(a => {
+              const inClass = a.targets.filter(t => ids.includes(t.studentId));
+              const finished = inClass.filter(t => done.has(`${a.id}:${t.studentId}`));
+              const waiting = inClass.filter(t => !done.has(`${a.id}:${t.studentId}`));
+              const overdue = a.dueDate && a.dueDate < today && waiting.length > 0;
+              return (
+                <tr key={a.id}>
+                  <td>{describe(a)}{a.note && <><br /><span className="small muted">“{a.note}”</span></>}<br /><span className="small muted">by {a.createdBy.firstName}</span></td>
+                  <td className="small">{a.dueDate ? <span className={overdue ? "pill below" : ""}>{fmtDate(a.dueDate, { month: "short", day: "numeric" })}</span> : "—"}</td>
+                  <td className="num">{finished.length}/{inClass.length}</td>
+                  <td className="small">{waiting.map(t => students.find(x => x.id === t.studentId)?.firstName).filter(Boolean).join(", ") || <span className="pill above">Everyone</span>}</td>
+                  <td><form action={deleteAssignment}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="returnTo" value={returnTo} /><button className="btn small">Remove</button></form></td>
+                </tr>
+              );
+            })}</tbody>
+          </table></div>
+        ) : <p className="muted small">No assignments yet. Assign a skill to master, practice, or an assessment retake below, or use the Assign buttons on a student&apos;s next-level requirements.</p>}
+        {students.length > 0 && <AssignForm students={students.map(s => ({ id: s.id, name: `${s.firstName} ${s.lastName}` }))} menu={menu} subjects={subjectOptions} returnTo={returnTo} defaultGrade={classGrade} />}
+      </section>
 
       <section className="stack">
         <h2>Where each student is</h2>
