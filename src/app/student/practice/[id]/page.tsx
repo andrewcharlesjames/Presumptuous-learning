@@ -8,6 +8,7 @@ import { lookupFor } from "@/lib/questions";
 import { SUBJECT_BY_ID, gradeName, isSubjectId } from "@/lib/subjects";
 import { Practice } from "./Practice";
 import { startPractice } from "../actions";
+import { tutorConfigured } from "@/lib/tutor";
 
 export const metadata = { title: "Practice" };
 
@@ -43,7 +44,7 @@ export default async function PracticePage({ params }: { params: Promise<{ id: s
             <Link className="btn" href="/student">Back to Today</Link>
           </div>
         </div>
-      ) : <Practice id={s.id} items={items} start={start} subject={s.subject} skill={s.skill} grade={s.grade} />}
+      ) : <Practice id={s.id} items={items} start={start} subject={s.subject} skill={s.skill} grade={s.grade} tutor={!!user.school?.aiTutor && tutorConfigured()} />}
     </Shell>
   );
 }

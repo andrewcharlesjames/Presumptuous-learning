@@ -2,6 +2,7 @@ import { requireSchoolUser } from "@/lib/auth";
 import { Shell } from "@/components/Shell";
 import { PasswordForm } from "@/components/PasswordForm";
 import { saveSettings } from "../actions";
+import { DAILY_LIMIT, tutorConfigured } from "@/lib/tutor";
 
 export const metadata = { title: "Settings" };
 
@@ -17,6 +18,8 @@ export default async function SettingsPage() {
           <label className="field">Title for staff who work with students<span className="hint">Shown everywhere. Default: Coach.</span><input id="coachTitle" name="coachTitle" type="text" defaultValue={school.coachTitle} required /></label>
           <label className="field">Time zone<input id="timezone" name="timezone" type="text" defaultValue={school.timezone} required /></label>
         </div>
+        <label className="check"><input type="checkbox" name="aiTutor" id="aiTutor" defaultChecked={school.aiTutor} />Turn on the AI tutor for students</label>
+        <p className="small muted" style={{ marginTop: -6 }}>After a wrong practice answer, students can ask for a short explanation written by AI (Claude, by Anthropic). Only the question, its answer choices, the student&apos;s choice and grade are sent; never names or other personal information. Up to {DAILY_LIMIT} explanations per student per day.{!tutorConfigured() && " The platform hasn't been connected to the AI service yet, so this has no effect until it is."}</p>
         <p className="small muted">School code for student sign-in: <b className="num">{school.code}</b></p>
         <div><button className="btn primary">Save settings</button></div>
       </form>

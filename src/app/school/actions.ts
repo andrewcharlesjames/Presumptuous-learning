@@ -274,9 +274,9 @@ const settingsSchema = z.object({
 
 export async function saveSettings(form: FormData) {
   const { school } = await admin();
-  const p = settingsSchema.safeParse(Object.fromEntries(form));
+  const p = settingsSchema.safeParse({ name: form.get("name"), coachTitle: form.get("coachTitle"), timezone: form.get("timezone") });
   if (!p.success) return back("/school/settings", "error", "Check the school name and title.");
   try { new Intl.DateTimeFormat("en-CA", { timeZone: p.data.timezone }); } catch { return back("/school/settings", "error", "That time zone isn't recognised."); }
-  await db.school.update({ where: { id: school.id }, data: p.data });
+  await db.school.update({ where: { id: school.id }, data: { ...p.data, aiTutor: form.get("aiTutor") === "on" } });
   return back("/school/settings", "ok", "Settings saved.");
 }

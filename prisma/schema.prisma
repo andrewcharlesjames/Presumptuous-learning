@@ -61,6 +61,7 @@ model School {
   yearStart  DateTime @db.Date
   yearEnd    DateTime @db.Date
   isDemo     Boolean  @default(false)
+  aiTutor    Boolean  @default(false) // school has opted in to AI explanations for students
   createdAt  DateTime @default(now())
 
   users      User[]
@@ -254,4 +255,21 @@ model PracticeSession {
   completedAt DateTime?
 
   @@index([studentId, startedAt])
+}
+
+/// Cached AI tutor explanations, one per question + wrong answer. No student data is stored or sent.
+model TutorExplanation {
+  key       String   @id // "<question id>:<chosen choice index>"
+  text      String
+  model     String
+  createdAt DateTime @default(now())
+}
+
+/// One row per explanation a student asked for (daily limit).
+model TutorRequest {
+  id        String   @id @default(cuid())
+  studentId String
+  createdAt DateTime @default(now())
+
+  @@index([studentId, createdAt])
 }

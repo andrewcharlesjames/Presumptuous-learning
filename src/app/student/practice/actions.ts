@@ -6,6 +6,7 @@ import { isSubjectId } from "@/lib/subjects";
 import { toStoredQuestion, type Answer, type StoredQuestion } from "@/lib/assessment";
 import { lookupFor } from "@/lib/questions";
 import { pickItems } from "@/lib/runner";
+import { explain, tutorConfigured } from "@/lib/tutor";
 
 const SET_SIZE = 5;
 
@@ -57,4 +58,22 @@ export async function answerPractice(sessionId: string, index: number, choice: n
     done,
     ...(done ? { score: { correct, total: questions.length } } : {}),
   };
+}
+
+/** Ask the AI tutor to explain a practice question the student got wrong. */
+export async function explainPractice(sessionId: string, index: number): Promise<{ text?: string; error?: string }> {
+  const user = await requireUser(["STUDENT"]);
+  if (!user.school?.aiTutor || !tutorConfigured()) return { error: "The tutor isn't turned on for your school." };
+  const s = await db.practiceSession.findFirst({ where: { id: sessionId, studentId: user.id } });
+  if (!s) return { error: "Practice set not found." };
+  const questions = s.questions as StoredQuestion[];
+  const answers = s.answers as Answer[];
+  const q = questions[index];
+  const chosen = answers[index];
+  if (!q || chosen === null || chosen === undefined || chosen === 0) return { error: "Answer the question first." };
+  const item = (await lookupFor([q]))(q);
+  if (!item) return { error: "Question not found." };
+  const r = await explain(item, chosen, user.grade ?? 0, user.id);
+  if (r.ok) return { text: r.text };
+  return { error: r.reason === "limit" ? "You've reached today's tutor limit. Ask your coach, or try again tomorrow." : "The tutor couldn't answer right now. Try again in a minute." };
 }

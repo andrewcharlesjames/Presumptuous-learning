@@ -4,7 +4,15 @@
 
 A platform for schools that assesses every subject in a student's Ontario curriculum (Kindergarten to Grade 12), places each subject below, at or above grade level, and builds a plan for the day, the month and the school year. Students, parents, coaches and school admins each get their own view.
 
-## Phase 1 (this release)
+## Phase 2
+
+- Question bank in the database with a platform-admin editor, coverage map and teacher-review flag.
+- 471 written questions plus 31 math generators (fresh numbers and worked explanations every time).
+- Adaptive placement: starts at the student's grade, moves up or down until it finds the level they work at.
+- Daily practice: 5-question sets from the plan, with instant feedback; visible to coaches and parents.
+- AI tutor (optional, per school): short explanations of wrong practice answers, written by Claude. Only the question, choices, chosen answer and grade are sent.
+
+## Phase 1
 
 - **Schools as separate spaces.** Each school's people, classes, timetable, calendar and records stay inside that school.
 - **Roles:** platform admin (creates schools), school admin, coach (title can be renamed per school), parent, student.
@@ -46,6 +54,7 @@ BASE=http://localhost:3000 ADMIN_EMAIL=... ADMIN_PASSWORD=... node tests/e2e.mjs
    - `ADMIN_EMAIL` = your email
    - `ADMIN_PASSWORD` = a long password (12+ characters) for the first platform admin
    - `ADMIN_FIRST_NAME`, `ADMIN_LAST_NAME` (optional)
+   - `ANTHROPIC_API_KEY` (optional): turns on the AI tutor. Each school still has to switch it on in Settings.
 4. App service → **Settings → Networking → Generate Domain** to get a public URL.
 5. Railway builds with `npm run build` and starts with `npm start`, which applies database migrations, creates the platform admin if none exists, and starts the app. The health check is `/api/health`.
 

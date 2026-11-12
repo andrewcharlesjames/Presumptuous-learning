@@ -1,17 +1,23 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { answerPractice, type Feedback } from "../actions";
+import { answerPractice, explainPractice, type Feedback } from "../actions";
 
 type Item = { subject: string; strand: string; prompt: string; options: string[] };
 
-export function Practice({ id, items, start }: { id: string; items: Item[]; start: number; subject: string; skill: string; grade: number }) {
+export function Practice({ id, items, start, tutor }: { id: string; items: Item[]; start: number; subject: string; skill: string; grade: number; tutor: boolean }) {
   const router = useRouter();
   const [idx, setIdx] = useState(start);
   const [picked, setPicked] = useState<number | null>(null);
   const [fb, setFb] = useState<Feedback | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [tutorText, setTutorText] = useState<string | null>(null);
+  const [tutorPending, startTutor] = useTransition();
+  const askTutor = () => startTutor(async () => {
+    const r = await explainPractice(id, idx);
+    setTutorText(r.text ?? r.error ?? null);
+  });
   const q = items[idx];
 
   const check = () => {
@@ -24,7 +30,7 @@ export function Practice({ id, items, start }: { id: string; items: Item[]; star
   };
   const next = () => {
     if (fb?.done) { router.refresh(); return; }
-    setIdx(idx + 1); setPicked(null); setFb(null); window.scrollTo(0, 0);
+    setIdx(idx + 1); setPicked(null); setFb(null); setTutorText(null); window.scrollTo(0, 0);
   };
 
   return (
@@ -48,6 +54,11 @@ export function Practice({ id, items, start }: { id: string; items: Item[]; star
             <span>{fb.ok ? "Correct." : `Not quite. The answer is ${fb.correctText}.`}</span>
             {fb.explanation && <span style={{ fontWeight: 400 }}>{fb.explanation}</span>}
           </div>
+        )}
+        {fb && !fb.ok && tutor && (
+          tutorText
+            ? <div className="card tight" style={{ background: "var(--accent-soft)", border: 0 }} role="status"><span className="eyebrow">Tutor</span><p>{tutorText}</p></div>
+            : <div><button type="button" className="btn small" onClick={askTutor} disabled={tutorPending}>{tutorPending ? "Thinking…" : "Explain it to me"}</button></div>
         )}
         {error && <p className="flash error" role="alert">{error}</p>}
         <div className="spread" style={{ alignItems: "center" }}>
