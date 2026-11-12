@@ -33,7 +33,7 @@ export default async function SchoolLicencePage({ params }: { params: Promise<{ 
       {st.warn && <p className="flash error">{st.warn}</p>}
       <div className="grid3">
         <div className="stat"><span className="n">{students}<span className="muted" style={{ fontSize: "1rem" }}> / {school.seats}</span></span><span className="small muted">Students / seats<Info label="Students / seats">Active students now, out of the seats the licence allows. Only students use seats; coaches, parents and admins are free. When all seats are used, the school can&apos;t add, import or reactivate students. Deactivating a student frees their seat.</Info></span></div>
-        <div className="stat"><span className="n">{st.daysLeft ?? "–"}</span><span className="small muted">Days left{school.licenceEnd ? ` (ends ${fmtDate(school.licenceEnd, long)})` : ""}<Info label="Days left">Days until the licence end date. From 30 days out, the school admin sees a renewal banner. After it ends, the admin and coaches see a banner, but nothing is locked: renewing is a conversation, not a shutdown.</Info></span></div>
+        <div className="stat"><span className="n">{st.daysLeft ?? "–"}</span><span className="small muted">{school.licenceEnd ? "Days left" : "No end date"}{school.licenceEnd ? ` (ends ${fmtDate(school.licenceEnd, long)})` : ""}<Info label="Days left">Days until the licence end date. From 30 days out, the school admin sees a renewal banner. After it ends, the admin and coaches see a banner, but nothing is locked: renewing is a conversation, not a shutdown.</Info></span></div>
         <div className="stat"><span className="n">{coaches}</span><span className="small muted">Coaches<Info label="Coaches">Active coaches at the school, plus the first school admin (your main contact). Coaches don&apos;t count towards seats.</Info> · admin {admin ? `${admin.firstName} ${admin.lastName}` : "none"}</span></div>
       </div>
 
@@ -48,7 +48,8 @@ export default async function SchoolLicencePage({ params }: { params: Promise<{ 
         </div>
         <div className="form-grid">
           <label className="field" htmlFor="licenceStart"><span>Starts<Info label="Licence dates">The period the school has paid for (or the pilot runs). The end date drives the renewal and ended banners. New invoices use these dates as their billing period by default.</Info></span><input id="licenceStart" name="licenceStart" type="date" defaultValue={isoDate(start)} required /></label>
-          <label className="field">Ends<input id="licenceEnd" name="licenceEnd" type="date" defaultValue={isoDate(end)} required /></label>
+          <div className="field"><label htmlFor="licenceEnd">Ends</label><input id="licenceEnd" name="licenceEnd" type="date" defaultValue={isoDate(end)} />
+            <label className="check small" style={{ marginTop: 6 }}><input type="checkbox" name="noEnd" id="noEnd" defaultChecked={!school.licenceEnd} />No end date<Info label="No end date">{"For your own school, partner schools or long-term arrangements: the licence never runs out, and nobody sees renewal or expiry reminders. Seat limits still apply."}</Info></label></div>
           <label className="field" htmlFor="billingEmail"><span>Billing email<Info label="Billing email">Printed under Bill to on invoices and shown on the school&apos;s Billing page. Defaults to the first school admin&apos;s email. Nothing is emailed automatically yet.</Info></span><input id="billingEmail" name="billingEmail" type="email" defaultValue={school.billingEmail} /></label>
         </div>
         <div><button className="btn primary">Save licence</button></div>

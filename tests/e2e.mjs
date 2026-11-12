@@ -567,6 +567,12 @@ await shot(pp, "15-phone-dark-student");
   await A.page.fill("#licenceEnd", new Date(Date.now() + 300 * 86400000).toISOString().slice(0, 10));
   await A.page.click("button:has-text('Save licence')");
   await flashText(A.page, "Licence saved");
+  await A.page.check("#noEnd");
+  await A.page.click("button:has-text('Save licence')");
+  await flashText(A.page, "Licence saved");
+  ok(await A.page.locator("text=No end date").count() >= 1, "a licence can have no end date");
+  await R.page.goto(`${BASE}/school`);
+  ok(await R.page.locator(".licence-warn").count() === 0, "a school with no end date sees no renewal banner");
 
   // the richer demo: streaks, mastery, projects, studio
   const DS = await session("demostudent");

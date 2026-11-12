@@ -105,8 +105,9 @@ export async function saveLicence(form: FormData) {
   const path = `/admin/schools/${id}`;
   if (!p.success) return toAdmin(path, "error", "Check the seats, price and billing email.");
   const d = p.data;
-  const start = parseIsoDate(d.licenceStart), end = parseIsoDate(d.licenceEnd);
-  if (!start || !end || end <= start) return toAdmin(path, "error", "The licence must end after it starts.");
+  const noEnd = form.get("noEnd") === "on";
+  const start = parseIsoDate(d.licenceStart), end = noEnd ? null : parseIsoDate(d.licenceEnd);
+  if (!start || (!noEnd && (!end || end <= start))) return toAdmin(path, "error", "The licence must end after it starts, or tick No end date.");
   await db.school.update({
     where: { id: d.id },
     data: { plan: d.plan, seats: d.seats, licenceStart: start, licenceEnd: end, priceCents: Math.round(d.price * 100), billingEmail: d.billingEmail.toLowerCase() },
