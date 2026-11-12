@@ -1,0 +1,35 @@
+{
+  "name": "presumptuous-learning",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "prisma migrate deploy && node scripts/bootstrap.mjs && next start",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types \"tests/*.test.ts\"",
+    "db:migrate": "prisma migrate dev"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "next": "16.4.3",
+    "prisma": "6.19.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.7",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.7.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2"
+  },
+  "type": "module"
+}

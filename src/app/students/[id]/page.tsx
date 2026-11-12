@@ -1,0 +1,161 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { requireUser } from "@/lib/auth";
+import { canManageStudent, canViewStudent } from "@/lib/access";
+import { db } from "@/lib/db";
+import { Shell } from "@/components/Shell";
+import { Ruler, StatusPill } from "@/components/Status";
+import { PlanView, type PlanData } from "@/components/PlanView";
+import { latestScored, countStatuses } from "@/lib/records";
+import { buildPlan, MODE_LABEL, nextLevelSkills } from "@/lib/plan";
+import { type Status, type StoredResult } from "@/lib/assessment";
+import { addDays, fmtDate, fmtStamp, MONTHS, todayIn, WEEKDAYS } from "@/lib/dates";
+import { gradeName, plural } from "@/lib/subjects";
+import { SUBJECT_BY_ID } from "@/lib/subjects";
+import { startAssessment } from "@/app/student/actions";
+import { resetPassword, updateStudentGrade } from "@/app/school/actions";
+
+export default async function StudentProfile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ done?: string }> }) {
+  const { id } = await params;
+  const { done } = await searchParams;
+  const viewer = await requireUser();
+  if (!(await canViewStudent(viewer, id))) notFound();
+  const student = await db.user.findUnique({
+    where: { id },
+    include: { school: true, studentIn: { include: { class: { include: { coaches: { include: { coach: true } } } } } }, parents: { include: { parent: true } } },
+  });
+  if (!student || !student.school) notFound();
+  const school = student.school;
+  const self = viewer.id === student.id;
+  const staff = await canManageStudent(viewer, id);
+  const today = todayIn(school.timezone);
+  const [scored, history, attendance, reports] = await Promise.all([
+    latestScored(id),
+    db.assessment.findMany({ where: { studentId: id, status: "COMPLETE" }, orderBy: { completedAt: "desc" }, select: { id: true, completedAt: true, grade: true, results: true } }),
+    db.attendance.findMany({ where: { studentId: id, date: { gte: addDays(today, -30) } } }),
+    db.calendarEvent.findMany({ where: { schoolId: school.id, kind: "REPORT" } }),
+  ]);
+  const grade = student.grade ?? 0;
+  const who = self ? "You" : student.firstName;
+  const att = { PRESENT: 0, LATE: 0, ABSENT: 0, EXCUSED: 0 } as Record<string, number>;
+  attendance.forEach(a => att[a.status]++);
+
+  let planData: PlanData | null = null;
+  if (scored) {
+    const g = scored.assessment.grade;
+    const p = buildPlan({ grade: g, results: scored.results, today, yearEnd: school.yearEnd, extraMilestones: reports.map(r => ({ date: r.startDate, title: r.title })) });
+    const statusOf = Object.fromEntries(scored.results.map(r => [r.sid, r.status]));
+    planData = {
+      todayLabel: fmtDate(today, { weekday: "long", month: "long", day: "numeric" }),
+      weekend: p.today.weekend,
+      blocks: p.today.blocks.map(b => ({ min: b.min, title: b.title, mode: b.mode, modeLabel: MODE_LABEL[b.mode], ...b.how })),
+      schedule: p.sched.days.map((d, i) => ({ day: WEEKDAYS[i], items: d.map(sid => ({ name: SUBJECT_BY_ID[sid].name(g), status: statusOf[sid] })) })),
+      perDay: p.sched.perDay,
+      weeks: p.weeks.map(w => ({ label: fmtDate(w.start), title: w.title, detail: w.detail, lines: w.lines.map(l => ({ name: l.name, sessions: l.sessions, picks: l.picks.map(x => ({ ...x, modeLabel: MODE_LABEL[x.mode] })) })) })),
+      finalMonth: p.finalMonth,
+      traj: p.traj.map(t => ({ name: t.name, steps: t.steps })),
+      months: p.yearMonths.map(m => ({ label: `${MONTHS[m.m]} ${m.y}`, ph: m.ph, phaseName: m.phaseName, goal: m.goal, items: m.items, milestones: m.milestones })),
+      nextGrade: gradeName(Math.min(g + 1, 13)),
+    };
+  }
+  const c = scored ? countStatuses(scored.results) : null;
+
+  return (
+    <Shell user={viewer}>
+      {done && self && <div className="flash ok">Assessment complete. Here&apos;s where you are and your plan to get ahead.</div>}
+      <div className="spread">
+        <div>
+          <span className="eyebrow">{gradeName(grade)} · {school.name}{student.studentIn.length ? ` · ${student.studentIn.map(s => s.class.name).join(", ")}` : ""}</span>
+          <h1>{self ? "My learning plan" : `${student.firstName} ${student.lastName}`}</h1>
+          {scored && <p className="muted small" style={{ marginTop: 6 }}>Last assessed {fmtStamp(scored.assessment.completedAt!, school.timezone, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} in {gradeName(scored.assessment.grade)}</p>}
+        </div>
+        {self && scored && <form action={startAssessment}><input type="hidden" name="fresh" value="1" /><button className="btn">Retake the assessment</button></form>}
+      </div>
+
+      {!scored ? (
+        <div className="empty"><b>{self ? "You haven't" : `${student.firstName} hasn't`} finished an assessment yet</b>
+          {self ? <Link className="btn primary" href="/student">Go to Today</Link> : <span>The plan appears here once it&apos;s done.</span>}</div>
+      ) : (
+        <>
+          <section className="grid3">
+            <div className="stat below"><span className="n">{c!.below}</span><span>below grade level</span></div>
+            <div className="stat at"><span className="n">{c!.at}</span><span>at grade level</span></div>
+            <div className="stat above"><span className="n">{c!.above}</span><span>above grade level</span></div>
+          </section>
+
+          <section className="stack">
+            <h2>Placement and next-level requirements</h2>
+            <div className="tablewrap"><table>
+              <thead><tr><th>Subject</th><th>Placement</th><th>Level</th><th>To reach the next level, {who.toLowerCase() === "you" ? "show you can" : `${student.firstName} needs to show`}…</th></tr></thead>
+              <tbody>{scored.results.map(r => {
+                const req = nextLevelSkills(r, scored.assessment.grade);
+                const target = r.status === "below" ? "At grade level" : r.status === "at" ? "Above grade level" : "Two grades ahead";
+                return (
+                  <tr key={r.sid}>
+                    <td><b>{r.name}</b><br /><span className="small muted num">{r.correct}/{r.total} correct</span></td>
+                    <td><Ruler status={r.status} grade={scored.assessment.grade} /></td>
+                    <td><StatusPill status={r.status} /><br /><span className="small muted">Level {r.level}</span></td>
+                    <td className="small"><span className="muted">Next: {target}</span>
+                      <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>{req.slice(0, 4).map(s => <li key={s}>{s}</li>)}</ul>
+                      {(staff || viewer.role === "PARENT" || self) && (
+                        <details className="items"><summary>See the {r.total} questions</summary>
+                          <div className="itemlist">{r.items.map(x => (
+                            <div key={x.k} className="item"><span className={x.ok ? "ok" : "no"}>{x.ok ? "✓" : "✗"}</span>
+                              <div>{x.d[2]}<small>{x.tier === "below" ? "Grade below" : x.tier === "at" ? "Grade level" : "Grade above"} · {x.d[1]} · {x.ok ? "Correct" : `Answer: ${x.ans === -1 ? "Not sure yet" : x.d[3 + (x.ans as number)]} · Correct: ${x.d[3]}`}</small></div>
+                            </div>
+                          ))}</div>
+                        </details>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}</tbody>
+            </table></div>
+          </section>
+
+          {planData && <PlanView plan={planData} />}
+        </>
+      )}
+
+      <section className="grid2" style={{ alignItems: "start" }}>
+        <div className="card">
+          <h2>Attendance, last 30 days</h2>
+          <p className="num">{att.PRESENT} present · {att.LATE} late · {att.ABSENT} absent · {att.EXCUSED} excused</p>
+          {attendance.filter(a => a.status !== "PRESENT").sort((a, b) => +b.date - +a.date).slice(0, 6).map(a => (
+            <p key={a.id} className="small muted">{fmtDate(a.date, { weekday: "short", month: "short", day: "numeric" })}: {a.status.toLowerCase()}{a.note ? ` (${a.note})` : ""}</p>
+          ))}
+        </div>
+        <div className="card">
+          <h2>Assessment history</h2>
+          {history.length ? history.map(h => {
+            const r = (h.results ?? []) as StoredResult[];
+            const cc = { below: 0, at: 0, above: 0 } as Record<Status, number>;
+            r.forEach(x => cc[x.status]++);
+            return <p key={h.id} className="small num">{fmtStamp(h.completedAt!, school.timezone, { month: "short", day: "numeric", year: "numeric" })} · {gradeName(h.grade)} · {cc.below} below · {cc.at} at · {cc.above} above</p>;
+          }) : <p className="muted small">None yet.</p>}
+        </div>
+      </section>
+
+      {(staff || viewer.role === "PARENT") && (
+        <section className="card">
+          <h2>Account and family</h2>
+          <p className="small">{student.studentIn.flatMap(s => s.class.coaches).length === 1 ? school.coachTitle : plural(school.coachTitle)}: {[...new Set(student.studentIn.flatMap(s => s.class.coaches.map(c => `${c.coach.firstName} ${c.coach.lastName}`)))].join(", ") || "not assigned yet"}</p>
+          <p className="small">Parents: {student.parents.map(p => `${p.parent.firstName} ${p.parent.lastName}`).join(", ") || "none connected"}</p>
+          {staff && <>
+            <p className="small">Sign-in: school code <b className="num">{school.code}</b>, username <b className="num">{student.username}</b> · Family code for parents: <b className="num">{student.familyCode}</b></p>
+            <div className="row">
+              <form action={resetPassword}><input type="hidden" name="id" value={student.id} /><input type="hidden" name="returnTo" value={`/students/${student.id}`} /><button className="btn small">Give {student.firstName} a new password</button></form>
+              {viewer.role === "SCHOOL_ADMIN" && (
+                <form action={updateStudentGrade} className="row" style={{ gap: 6 }}>
+                  <input type="hidden" name="id" value={student.id} />
+                  <select aria-label="Grade" id="grade" name="grade" defaultValue={grade} style={{ width: "auto" }}>{Array.from({ length: 13 }, (_, g) => <option key={g} value={g}>{gradeName(g)}</option>)}</select>
+                  <button className="btn small">Change grade</button>
+                </form>
+              )}
+            </div>
+          </>}
+        </section>
+      )}
+    </Shell>
+  );
+}

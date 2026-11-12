@@ -1,0 +1,213 @@
+// End-to-end walk-through of every role against a running server.
+// Usage: BASE=http://localhost:3100 ADMIN_EMAIL=... ADMIN_PASSWORD=... SHOTS=/path node tests/e2e.mjs
+import { createRequire } from "node:module";
+const { chromium } = createRequire(import.meta.url)("playwright"); // uses the machine-wide Playwright (NODE_PATH)
+
+const BASE = process.env.BASE ?? "http://localhost:3100";
+const SHOTS = process.env.SHOTS;
+const problems = [];
+const ok = (cond, msg) => { if (!cond) problems.push(msg); console.log(`${cond ? "✓" : "✗"} ${msg}`); };
+
+const browser = await chromium.launch();
+
+async function session(name) {
+  const ctx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+  const page = await ctx.newPage();
+  page.on("pageerror", e => problems.push(`[${name}] page error: ${e.message}`));
+  page.on("console", m => { if (m.type() === "error" && !m.text().includes("404 (Not Found)")) problems.push(`[${name}] console: ${m.text()}`); });
+  page.on("response", r => { if (r.status() >= 500) problems.push(`[${name}] ${r.status()} ${r.url()}`); });
+  return { ctx, page };
+}
+async function shot(page, file, full = true) { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${file}.png`, fullPage: full }); }
+async function secrets(page, expect) {
+  const out = {};
+  await page.waitForSelector(`.flash:has-text("${expect}") .secret`, { timeout: 30000 }).catch(() => {});
+  for (const el of await page.locator(".secret").all()) {
+    const label = (await el.innerText()).split(":")[0].trim();
+    out[label] = (await el.locator("code").innerText()).trim();
+  }
+  return out;
+}
+async function flashText(page, expect) {
+  await page.waitForSelector(`.flash:has-text("${expect}")`, { timeout: 30000 }).catch(() => {});
+  return page.locator(".flash").first().innerText().catch(() => "");
+}
+async function adultLogin(page, email, password) {
+  await page.goto(`${BASE}/login`);
+  await page.fill("#email", email);
+  await page.fill("#password", password);
+  await page.click("button:has-text('Sign in')");
+  await page.waitForLoadState("networkidle");
+}
+async function visit(page, path, name) {
+  const r = await page.goto(`${BASE}${path}`);
+  ok(r.status() < 400, `${name}: ${path} → ${r.status()}`);
+}
+
+/* 1. platform admin */
+const A = await session("admin");
+await adultLogin(A.page, process.env.ADMIN_EMAIL, process.env.ADMIN_PASSWORD);
+ok(A.page.url().endsWith("/admin"), "platform admin lands on /admin");
+await A.page.click("button:has-text('Create a demo school')");
+await A.page.waitForLoadState("networkidle");
+const demo = await secrets(A.page, "Created Riverside");
+ok(!!demo["School code"], `demo school created (${demo["School code"]})`);
+await A.page.fill("#name", "Maple Grove School");
+await A.page.fill("#firstName", "Test");
+await A.page.fill("#lastName", "Principal");
+await A.page.fill("#email", `principal.${Date.now()}@example.com`);
+await A.page.click("button:has-text('Create school')");
+await A.page.waitForSelector("text=Maple Grove School is ready", { timeout: 30000 });
+const real = await secrets(A.page, "Maple Grove");
+ok(!!real["Temporary password"], "real school created with temporary admin password");
+await shot(A.page, "01-admin");
+
+/* 2. demo principal: every school page */
+const [pEmail, pPw] = demo["Principal (school admin)"].split(" / ");
+const P = await session("principal");
+await adultLogin(P.page, pEmail, pPw);
+ok(P.page.url().endsWith("/school"), "school admin lands on /school");
+await shot(P.page, "02-school-overview");
+for (const p of ["/school/people", "/school/classes", "/school/schedule", "/school/calendar", "/school/settings"]) await visit(P.page, p, "principal");
+await P.page.goto(`${BASE}/school/people`); await shot(P.page, "03-people");
+await P.page.goto(`${BASE}/school/calendar`); await shot(P.page, "04-calendar");
+await P.page.goto(`${BASE}/school/schedule`); await shot(P.page, "05-schedule");
+await P.page.goto(`${BASE}/school/classes`);
+await P.page.click("table a >> nth=0");
+await P.page.waitForLoadState("networkidle");
+ok(/\/school\/classes\/.+/.test(P.page.url()), "class edit page opens");
+
+/* 3. real school: admin adds a coach, a student, a class */
+const R = await session("realadmin");
+await adultLogin(R.page, real["Admin email"], real["Temporary password"]);
+await R.page.goto(`${BASE}/school/people`);
+await R.page.fill("#t-first", "Casey"); await R.page.fill("#t-last", "Coach"); await R.page.fill("#t-email", `casey.${Date.now()}@example.com`);
+await R.page.click("button:has-text('Add') >> nth=-1");
+await R.page.waitForLoadState("networkidle");
+const coach = await secrets(R.page, "Added Casey");
+ok(!!coach["Temporary password"], "coach added");
+await R.page.fill("#s-first", "Jordan"); await R.page.fill("#s-last", "Lee");
+await R.page.selectOption("#s-grade", "4");
+await R.page.click("button:has-text('Add student')");
+await R.page.waitForLoadState("networkidle");
+const stu = await secrets(R.page, "Added Jordan");
+ok(!!stu["Username"] && !!stu["Family code for parents"], `student added (${stu["Username"]})`);
+await R.page.fill("#csv", "first_name,last_name,grade\nRiley,Ng,K\nSam,Ortiz,12\nBad,Row,15");
+await R.page.click("button:has-text('Import students')");
+await R.page.waitForLoadState("networkidle");
+ok((await flashText(R.page, "Imported")).includes("Imported 2"), "CSV import adds valid rows and skips bad ones");
+await R.page.goto(`${BASE}/school/classes`);
+await R.page.fill("#c-name", "Studio 4"); await R.page.check("#g-4");
+await R.page.click("button:has-text('Create class')");
+await R.page.waitForLoadState("networkidle");
+await R.page.locator("input[name=coach]").first().check();
+await R.page.locator("input[name=student]").first().check();
+await R.page.click("button:has-text('Save class')");
+await R.page.waitForLoadState("networkidle");
+ok((await flashText(R.page, "Saved Studio")).includes("1 student"), "class saved with coach and student");
+const classUrl = R.page.url();
+// schedule edit: bad overlap is rejected
+await R.page.goto(`${BASE}/school/schedule`);
+await R.page.fill("#start-1", "09:15");
+await R.page.click("button:has-text('Save school day')");
+await R.page.waitForLoadState("networkidle");
+ok((await flashText(R.page, "overlaps")).includes("overlaps"), "overlapping timetable is rejected");
+
+/* 4. coach takes attendance */
+const C = await session("coach");
+await adultLogin(C.page, coach["Email"], coach["Temporary password"]);
+ok(C.page.url().endsWith("/coach"), "coach lands on /coach");
+await C.page.click(".card >> nth=0");
+await C.page.waitForLoadState("networkidle");
+await C.page.click("button:has-text('Save attendance')");
+await C.page.waitForLoadState("networkidle");
+ok((await flashText(C.page, "Attendance saved")).includes("Attendance saved"), "coach saves attendance");
+await shot(C.page, "06-coach-class");
+
+/* 5. student takes the assessment */
+const S = await session("student");
+await S.page.goto(`${BASE}/login`);
+await S.page.click("button:has-text('Student')");
+await S.page.fill("#code", real["School code"]); await S.page.fill("#username", stu["Username"]); await S.page.fill("#spassword", stu["Password"]);
+await S.page.click("button:has-text('Sign in')");
+await S.page.waitForLoadState("networkidle");
+ok(S.page.url().endsWith("/student"), "student lands on Today");
+await shot(S.page, "07-student-today-before");
+await S.page.click("button:has-text('Start the assessment')");
+await S.page.waitForURL(/\/student\/assessment/);
+let count = 0;
+for (;;) {
+  const opts = S.page.locator(".opt");
+  await opts.first().waitFor();
+  if (count === 3) await shot(S.page, "08-quiz", false);
+  await opts.nth(count % 5).click();
+  await S.page.waitForTimeout(60);
+  const btn = S.page.locator("button.primary");
+  const label = await btn.innerText();
+  await btn.click();
+  count++;
+  if (/results/i.test(label)) break;
+  if (count > 120) break;
+}
+await S.page.waitForURL(/\/students\//, { timeout: 15000 });
+ok(count === 49, `student answered ${count} questions (Grade 4: 7 subjects × 7)`);
+await shot(S.page, "09-student-results");
+for (const t of ["This month", "This year"]) { await S.page.click(`button.tab:has-text('${t}')`); }
+await shot(S.page, "10-year-plan");
+await S.page.goto(`${BASE}/student`);
+await shot(S.page, "11-student-today-after");
+
+/* 6. parent joins with the family code */
+const F = await session("parent");
+await F.page.goto(`${BASE}/join`);
+await F.page.fill("#code", stu["Family code for parents"]);
+await F.page.fill("#firstName", "Pat"); await F.page.fill("#lastName", "Lee");
+await F.page.fill("#email", `pat.${Date.now()}@example.com`); await F.page.fill("#password", "parent-password-1");
+await F.page.click("button:has-text('Create parent account')");
+await F.page.waitForURL(/\/parent/);
+ok((await F.page.locator("h2").first().innerText()).includes("Jordan"), "parent sees their child");
+await shot(F.page, "12-parent");
+await F.page.click("a:has-text('See plan')");
+await F.page.waitForURL(/\/students\//);
+await F.page.waitForSelector("h1:has-text('Jordan')", { timeout: 15000 }).catch(() => {});
+ok((await F.page.locator("h1").innerText()).includes("Jordan"), "parent opens child's plan");
+
+/* 7. permissions */
+const demoStudentLink = await (async () => { await P.page.goto(`${BASE}/school/people`); return P.page.locator("table a").first().getAttribute("href"); })();
+for (const [who, s] of [["parent", F], ["coach (other school)", C], ["student", S]]) {
+  const r = await s.page.goto(`${BASE}${demoStudentLink}`);
+  ok(r.status() === 404, `${who} cannot open another school's student (${r.status()})`);
+}
+for (const [who, s, path] of [["student", S, "/school"], ["parent", F, "/coach"], ["coach", C, "/admin"]]) {
+  await s.page.goto(`${BASE}${path}`);
+  ok(!s.page.url().endsWith(path), `${who} is redirected away from ${path}`);
+}
+const anon = await session("anon");
+await anon.page.goto(`${BASE}/school`);
+ok(anon.page.url().endsWith("/login"), "signed-out visitor is sent to sign in");
+await anon.page.goto(`${BASE}/`);
+await shot(anon.page, "00-home");
+await anon.page.goto(`${BASE}/login`);
+await anon.page.fill("#email", process.env.ADMIN_EMAIL); await anon.page.fill("#password", "wrong");
+await anon.page.click("button:has-text('Sign in')");
+await anon.page.waitForSelector("[role=alert]");
+ok(true, "wrong password shows an error");
+
+/* 8. demo coach & phone view */
+const [cEmail, cPw] = demo["Coach"].split(" / ");
+const DC = await session("democoach");
+await adultLogin(DC.page, cEmail, cPw);
+await shot(DC.page, "13-coach-home");
+await DC.page.click(".card >> nth=0"); await DC.page.waitForLoadState("networkidle");
+await shot(DC.page, "14-demo-class");
+const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, colorScheme: "dark" });
+const pp = await phone.newPage();
+await pp.context().addCookies(await S.ctx.cookies());
+await pp.goto(`${BASE}/student`);
+const overflow = await pp.evaluate(() => document.documentElement.scrollWidth);
+ok(overflow <= 390, `phone layout has no sideways scroll (${overflow}px)`);
+await shot(pp, "15-phone-dark-student");
+
+await browser.close();
+console.log(problems.length ? `\n${problems.length} problem(s):\n- ${problems.join("\n- ")}` : "\nAll checks passed.");
+process.exitCode = problems.length ? 1 : 0;
