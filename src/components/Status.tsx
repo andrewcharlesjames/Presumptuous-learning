@@ -23,12 +23,26 @@ export function SubjectChips({ results, grade }: { results: StoredResult[]; grad
   );
 }
 
-export function Ruler({ status, grade }: { status: Status; grade: number }) {
-  const cells: [Status, number][] = [["below", grade - 1], ["at", grade], ["above", grade + 1]];
+/**
+ * Five grades centred on the student's grade. The highlighted cell is the level they showed;
+ * the outlined cell is their own grade. Levels beyond the ruler pin to the end cell.
+ */
+export function Ruler({ status, grade, working }: { status: Status; grade: number; working?: number }) {
+  const w = working ?? (status === "above" ? grade + 1 : status === "at" ? grade : grade - 1);
+  const lo = Math.max(-1, grade - 2);
+  const cells = Array.from({ length: 5 }, (_, i) => lo + i).filter(g => g <= 13);
+  const first = cells[0], last = cells[cells.length - 1];
+  const onCell = Math.min(last, Math.max(first, w));
+  const label = (g: number) => {
+    const name = g < 0 ? "Pre-K" : `Gr ${gradeShort(g)}`;
+    if (g === onCell && w < first) return `≤${name}`;
+    if (g === onCell && w > last) return `≥${name}`;
+    return name;
+  };
   return (
-    <div className="ruler" aria-label={STATUS_LABEL[status]}>
-      {cells.map(([st, g]) => (
-        <div key={st} className={`seg ${st} ${status === st ? "on" : ""}`}>{g < 0 ? "Pre-K" : `Gr ${gradeShort(g)}`}</div>
+    <div className="ruler" style={{ gridTemplateColumns: `repeat(${cells.length}, 1fr)` }} aria-label={`${STATUS_LABEL[status]}: working at ${w < 0 ? "pre-Kindergarten" : gradeShort(w) === "K" ? "Kindergarten" : `Grade ${gradeShort(w)}`} level`}>
+      {cells.map(g => (
+        <div key={g} className={`seg ${status} ${g === onCell ? "on" : ""}`} style={g === grade && g !== onCell ? { boxShadow: "inset 0 0 0 1.5px var(--muted)" } : undefined} title={g === grade ? "Your grade" : undefined}>{label(g)}</div>
       ))}
     </div>
   );

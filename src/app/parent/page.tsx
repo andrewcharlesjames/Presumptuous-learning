@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { SplitBar, StatusPill } from "@/components/Status";
 import { PasswordForm } from "@/components/PasswordForm";
 import { countStatuses, dayInfo, latestResults } from "@/lib/records";
+import { practiceSummary } from "@/lib/practice";
 import { addDays, fmtStamp } from "@/lib/dates";
 import { gradeName, SUBJECT_BY_ID } from "@/lib/subjects";
 import { linkChild } from "./actions";
@@ -17,10 +18,11 @@ export default async function ParentHome() {
   const kids = links.map(l => l.student);
   const ids = kids.map(k => k.id);
   const info = await dayInfo(school);
-  const [latest, att, inProgress] = await Promise.all([
+  const [latest, att, inProgress, practice] = await Promise.all([
     latestResults(ids),
     db.attendance.findMany({ where: { studentId: { in: ids }, date: { gte: addDays(info.date, -30) } } }),
     db.assessment.findMany({ where: { studentId: { in: ids }, status: "IN_PROGRESS" }, select: { studentId: true } }),
+    practiceSummary(ids, 7),
   ]);
   const going = new Set(inProgress.map(a => a.studentId));
   return (
@@ -48,6 +50,7 @@ export default async function ParentHome() {
                   <p className="small muted">Assessed {fmtStamp(l.completedAt, school.timezone, { month: "long", day: "numeric" })}</p>
                 </>
               ) : <p className="muted small">{going.has(k.id) ? "Assessment in progress." : "Not assessed yet."}</p>}
+              <p className="small">Practice this week: {(() => { const p = practice.get(k.id); return p ? `${p.sets} set${p.sets === 1 ? "" : "s"}, ${p.questions} questions, ${Math.round((p.correct / Math.max(1, p.questions)) * 100)}% correct` : "none yet"; })()}</p>
               <p className="small">
                 Today: {info.schoolDay ? (t ? t.status.toLowerCase() : "attendance not taken yet") : `no school (${info.reason})`}
                 {" · "}Last 30 days: {n("PRESENT")} present, {n("LATE")} late, {n("ABSENT")} absent

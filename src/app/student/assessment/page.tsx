@@ -2,23 +2,26 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
-import { publicQuestion, type Answer, type StoredQuestion } from "@/lib/assessment";
+import { advance, currentView } from "@/lib/runner";
 import { Quiz } from "./Quiz";
 
 export const metadata = { title: "Assessment" };
 
 export default async function AssessmentPage() {
   const user = await requireUser(["STUDENT"]);
-  const a = await db.assessment.findFirst({ where: { studentId: user.id, status: "IN_PROGRESS" } });
+  let a = await db.assessment.findFirst({ where: { studentId: user.id, status: "IN_PROGRESS" } });
+  if (a && a.mode !== "adaptive") {
+    // A Phase 1 assessment left half-done: replace it with the adaptive version.
+    await db.assessment.delete({ where: { id: a.id } });
+    a = null;
+  }
   if (!a) redirect("/student");
-  const questions = (a.questions as StoredQuestion[]).map(q => publicQuestion(q, a.grade));
-  const answers = a.answers as Answer[];
-  // Map stored original indexes back to display positions for questions already answered.
-  const picked = (a.questions as StoredQuestion[]).map((q, i) => answers[i] === null ? null : answers[i] === -1 ? -1 : q.order.indexOf(answers[i] as number));
-  const first = picked.findIndex(p => p === null);
+  const step = await advance(a);
+  const view = step.done ? null : await currentView(a, step.questions, step.answers);
+  if (!view) redirect("/student");
   return (
     <Shell user={user}>
-      <Quiz id={a.id} questions={questions} initial={picked} start={first < 0 ? questions.length - 1 : first} readAloud={a.grade <= 2} />
+      <Quiz id={a.id} studentId={user.id} initial={view} readAloud={a.grade <= 2} />
     </Shell>
   );
 }

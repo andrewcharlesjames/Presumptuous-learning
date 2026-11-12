@@ -92,6 +92,7 @@ model User {
   children        ParentLink[]   @relation("ParentToLink")
   parents         ParentLink[]   @relation("StudentToLink")
   assessments     Assessment[]
+  practice        PracticeSession[]
   attendance      Attendance[]   @relation("AttendanceStudent")
   markedAttendance Attendance[]  @relation("AttendanceMarker")
 
@@ -202,6 +203,7 @@ model Assessment {
   grade       Int
   subjects    String[]
   status      AssessmentStatus @default(IN_PROGRESS)
+  mode        String           @default("fixed") // "fixed" (Phase 1) or "adaptive"
   questions   Json // [{sid, tier, p, i, order}]
   answers     Json // (number | null)[]  original option index, -1 = not sure
   results     Json? // per-subject placement, written on completion
@@ -209,4 +211,47 @@ model Assessment {
   completedAt DateTime?
 
   @@index([studentId, status])
+}
+
+// ---------------- Phase 2: question bank and practice ----------------
+
+/// The question bank. Built-in questions are seeded from src/lib/bank.ts (key "lang-5-0");
+/// questions added in the editor get key "custom-<id>". Generated math questions are not stored.
+model Question {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  subject     String
+  grade       Int // 0 = Kindergarten … 12, 13 = beyond Grade 12
+  strand      String
+  skill       String
+  prompt      String
+  correct     String
+  wrong1      String
+  wrong2      String
+  wrong3      String
+  explanation String   @default("")
+  active      Boolean  @default(true)
+  reviewed    Boolean  @default(false) // checked by a certified teacher
+  source      String   @default("builtin")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([subject, grade, active])
+}
+
+model PracticeSession {
+  id          String    @id @default(cuid())
+  studentId   String
+  student     User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject     String
+  grade       Int // grade level the set was drawn from
+  skill       String    @default("")
+  questions   Json // StoredQuestion[]
+  answers     Json // (number | null)[]
+  correct     Int       @default(0)
+  total       Int
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([studentId, startedAt])
 }

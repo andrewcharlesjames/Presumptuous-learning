@@ -61,6 +61,15 @@ await A.page.waitForSelector("text=Maple Grove School is ready", { timeout: 3000
 const real = await secrets(A.page, "Maple Grove");
 ok(!!real["Temporary password"], "real school created with temporary admin password");
 await shot(A.page, "01-admin");
+await A.page.goto(`${BASE}/admin/questions?subject=math&grade=5`);
+ok(await A.page.locator("h1:has-text('Question bank')").count() === 1, "question bank opens");
+await shot(A.page, "17-question-bank");
+await A.page.locator("a:has-text('Edit')").first().click();
+await A.page.waitForURL(/\/admin\/questions\/.+/);
+await A.page.fill("#explanation", "Line up the decimal points, then add.");
+await A.page.click("button:has-text('Save question')");
+await A.page.waitForSelector(".flash:has-text('Question saved')", { timeout: 15000 });
+ok(true, "admin edits a question");
 
 /* 2. demo principal: every school page */
 const [pEmail, pPw] = demo["Principal (school admin)"].split(" / ");
@@ -136,26 +145,44 @@ await shot(S.page, "07-student-today-before");
 await S.page.click("button:has-text('Start the assessment')");
 await S.page.waitForURL(/\/student\/assessment/);
 let count = 0;
-for (;;) {
+// Answer by pattern: strong in the first subjects (always the correct-looking first try won't work, so pick by index).
+while (!/\/students\//.test(S.page.url()) && count < 150) {
   const opts = S.page.locator(".opt");
-  await opts.first().waitFor();
+  try { await opts.first().waitFor({ timeout: 10000 }); } catch { break; }
   if (count === 3) await shot(S.page, "08-quiz", false);
   await opts.nth(count % 5).click();
-  await S.page.waitForTimeout(60);
-  const btn = S.page.locator("button.primary");
-  const label = await btn.innerText();
-  await btn.click();
+  await S.page.locator("button.primary:has-text('Next')").click();
+  await S.page.waitForFunction(n => document.querySelector(".qtext")?.getAttribute("data-n") !== n || /\/students\//.test(location.href), String(count), { timeout: 15000 }).catch(() => {});
   count++;
-  if (/results/i.test(label)) break;
-  if (count > 120) break;
 }
-await S.page.waitForURL(/\/students\//, { timeout: 15000 });
-ok(count === 49, `student answered ${count} questions (Grade 4: 7 subjects × 7)`);
+await S.page.waitForURL(/\/students\//, { timeout: 20000 });
+ok(count >= 7 * 6 && count <= 7 * 12, `adaptive assessment asked ${count} questions (between 6 and 12 per subject)`);
+ok(await S.page.locator("text=working at").count() > 0, "results show the level each subject is working at");
 await shot(S.page, "09-student-results");
 for (const t of ["This month", "This year"]) { await S.page.click(`button.tab:has-text('${t}')`); }
 await shot(S.page, "10-year-plan");
 await S.page.goto(`${BASE}/student`);
 await shot(S.page, "11-student-today-after");
+// practice set
+const practiseButtons = S.page.locator("button:has-text('Practise now')");
+ok(await practiseButtons.count() > 0, "Today plan has Practise now buttons");
+await practiseButtons.first().click();
+await S.page.waitForURL(/\/student\/practice\//);
+for (let i = 0; i < 5; i++) {
+  await S.page.locator(".opt").first().click();
+  await S.page.click("button:has-text('Check')");
+  await S.page.waitForSelector(".flash[role=status]");
+  if (i === 0) await shot(S.page, "16-practice-feedback", false);
+  const label = await S.page.locator("button.primary").innerText();
+  await S.page.click("button.primary");
+  if (/score/i.test(label)) break;
+}
+await S.page.waitForSelector("text=Set complete", { timeout: 15000 });
+ok(true, "practice set completes with a score");
+await S.page.goto(`${BASE}/student`);
+const meLink = await S.page.locator("a:has-text('My plan')").getAttribute("href");
+await S.page.goto(`${BASE}${meLink}`);
+ok(await S.page.locator("text=Practice, last 7 days").count() > 0 && await S.page.locator("text=1 set").count() > 0, "practice shows on the student's plan page");
 
 /* 6. parent joins with the family code */
 const F = await session("parent");

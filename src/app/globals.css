@@ -103,8 +103,8 @@ td a { font-weight: 600; }
 .chips { display: flex; gap: 4px; flex-wrap: wrap; }
 .chip { font-size: .7rem; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: var(--sunk); color: var(--muted); }
 .chip.below { background: var(--below-soft); color: var(--below); } .chip.at { background: var(--at-soft); color: var(--at); } .chip.above { background: var(--above-soft); color: var(--above); }
-.ruler { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; min-width: 180px; }
-.seg { height: 28px; border-radius: 5px; background: var(--sunk); display: grid; place-items: center; font-size: .7rem; font-weight: 600; color: var(--muted); }
+.ruler { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; min-width: 230px; }
+.seg { height: 28px; white-space: nowrap; padding: 0 2px; border-radius: 5px; background: var(--sunk); display: grid; place-items: center; font-size: .7rem; font-weight: 600; color: var(--muted); }
 .seg.on.below { background: var(--below-soft); color: var(--below); box-shadow: inset 0 0 0 1.5px var(--below); }
 .seg.on.at { background: var(--at-soft); color: var(--at); box-shadow: inset 0 0 0 1.5px var(--at); }
 .seg.on.above { background: var(--above-soft); color: var(--above); box-shadow: inset 0 0 0 1.5px var(--above); }

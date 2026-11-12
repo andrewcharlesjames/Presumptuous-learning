@@ -1,5 +1,5 @@
 import { METHODS, type Mode, type SubjectId } from "./bank.ts";
-import { focusFor, pool, type Focus, type Status, type SubjectResult } from "./assessment.ts";
+import { builtinPool, focusFor, type Focus, type Status, type SubjectResult } from "./assessment.ts";
 import { addDays, MONTHS, mondayOf, weekdayIndex } from "./dates.ts";
 import { gradeName } from "./subjects.ts";
 
@@ -8,7 +8,7 @@ export const MODE_LABEL: Record<BlockMode, string> = { repair: "Repair", practic
 
 /** Activity text split around the skill so the UI can emphasise it. */
 export type HowTo = { before: string; skill: string; after: string };
-export type PlanBlock = { min: number; title: string; mode: BlockMode; sid?: SubjectId; how: HowTo };
+export type PlanBlock = { min: number; title: string; mode: BlockMode; sid?: SubjectId; skill?: string; grade?: number; how: HowTo };
 
 const PROPER = /^(Canada|Canadian|Canada's|Ontario|French|First|Indigenous|Shakespearean|Pythagorean|Ohm's|MLA|SMART|EQAO|OSSLT|Big-O|Renaissance|Impressionism|Maslow's|Le|Gibbs)\b/;
 /** "Physical regions of Canada" → "physical regions of Canada"; leaves proper nouns and acronyms alone. */
@@ -87,11 +87,15 @@ export type PlanInput = {
   today: Date; // UTC-midnight calendar date
   yearEnd: Date; // last day of the school year
   extraMilestones?: { date: Date; title: string }[];
+  /** Skills in the bank per subject and grade pool. Defaults to the built-in bank. */
+  skillsAt?: SkillsAt;
 };
+export type SkillsAt = (sid: SubjectId) => (p: number) => string[];
+export const builtinSkills: SkillsAt = sid => p => builtinPool(sid, p).map(x => x.skill);
 
-export function buildPlan({ grade: g, results: rs, today, yearEnd, extraMilestones = [] }: PlanInput) {
+export function buildPlan({ grade: g, results: rs, today, yearEnd, extraMilestones = [], skillsAt = builtinSkills }: PlanInput) {
   const b = band(g);
-  const focus = Object.fromEntries(rs.map(r => [r.sid, focusFor(r, g)])) as Record<SubjectId, Focus[]>;
+  const focus = Object.fromEntries(rs.map(r => [r.sid, focusFor(r, g, skillsAt(r.sid))])) as Record<SubjectId, Focus[]>;
   const sched = weekSchedule(rs, g);
   const byId = Object.fromEntries(rs.map(r => [r.sid, r])) as Record<SubjectId, SubjectResult>;
   const next = gradeName(Math.min(g + 1, 13));
@@ -107,7 +111,7 @@ export function buildPlan({ grade: g, results: rs, today, yearEnd, extraMileston
     list.forEach(sid => {
       const occ = sched.days.slice(0, wd).filter(d => d.includes(sid)).length;
       const f = focus[sid][occ % focus[sid].length];
-      blocks.push({ min: mins, title: `${byId[sid].name} · ${f.skill}`, mode: f.mode, sid, how: howTo(sid, f, g) });
+      blocks.push({ min: mins, title: `${byId[sid].name} · ${f.skill}`, mode: f.mode, sid, skill: f.skill, grade: f.grade, how: howTo(sid, f, g) });
     });
     blocks.push({ min: b.read, title: "Independent reading", mode: "habit", how: plain(g <= 2 ? "Read together with a grown-up. Take turns reading pages, then retell the story in order." : "Read a book you chose. Write down one new word and what it means.") });
     blocks.push({ min: 5, title: "Reflect", mode: "habit", how: plain("Write one thing you learned today and one question you still have.") });
@@ -115,10 +119,10 @@ export function buildPlan({ grade: g, results: rs, today, yearEnd, extraMileston
     const weak = rs.find(r => r.status === "below") ?? rs.find(r => r.status === "at");
     const strong = rs.find(r => r.status === "above") ?? rs[0];
     blocks.push({ min: b.read + 5, title: "Weekend reading", mode: "habit", how: plain("Read for fun: a library book, a graphic novel or a magazine. Tell someone about it.") });
-    if (weak) { const f = focus[weak.sid][0]; blocks.push({ min: 15, title: `${weak.name} · ${f.skill}`, mode: f.mode, sid: weak.sid, how: howTo(weak.sid, f, g) }); }
+    if (weak) { const f = focus[weak.sid][0]; blocks.push({ min: 15, title: `${weak.name} · ${f.skill}`, mode: f.mode, sid: weak.sid, skill: f.skill, grade: f.grade, how: howTo(weak.sid, f, g) }); }
     if (strong) {
       const f = focus[strong.sid].find(x => x.mode === "stretch") ?? focus[strong.sid][0];
-      blocks.push({ min: 20, title: `${strong.name} · ${f.skill}`, mode: "stretch", sid: strong.sid, how: howTo(strong.sid, { ...f, mode: "stretch" }, g) });
+      blocks.push({ min: 20, title: `${strong.name} · ${f.skill}`, mode: "stretch", sid: strong.sid, skill: f.skill, grade: f.grade, how: howTo(strong.sid, { ...f, mode: "stretch" }, g) });
     }
     blocks.push({ min: 30, title: "Hands-on learning", mode: "habit", how: plain("Cook with a recipe (fractions and measuring), take a nature walk and record 5 observations, or visit a museum or library.") });
   }
@@ -222,16 +226,14 @@ export function buildPlan({ grade: g, results: rs, today, yearEnd, extraMileston
 export type Plan = ReturnType<typeof buildPlan>;
 
 /** Next-grade skills not yet shown on the assessment: used for "requirements to reach the next level". */
-export function nextLevelSkills(r: SubjectResult, grade: number): string[] {
-  if (r.status === "below") {
-    const missed = r.items.filter(x => !x.ok && x.tier !== "above").map(x => x.d[1]);
-    return [...new Set(missed)];
-  }
-  const missedAbove = r.items.filter(x => !x.ok && x.tier === "above").map(x => x.d[1]);
-  const missedAt = r.items.filter(x => !x.ok && x.tier === "at").map(x => x.d[1]);
-  if (r.status === "at") {
-    const list = [...new Set([...missedAt, ...missedAbove])];
-    return list.length ? list : [...new Set(pool(r.sid, grade + 1).map(q => q[1]))];
-  }
-  return [...new Set(pool(r.sid, grade + 2).map(q => q[1]))].slice(0, 3);
+export function nextLevelSkills(r: SubjectResult, grade: number, skillsAt: SkillsAt = builtinSkills): string[] {
+  const at = skillsAt(r.sid);
+  const target = r.status === "below" ? Math.max(r.working + 1, 0) : r.working + 1;
+  const missedAtTarget = r.items.filter(x => !x.ok && x.p === target).map(x => x.d.skill);
+  const missedBelow = r.items.filter(x => !x.ok && x.p <= grade).map(x => x.d.skill);
+  const list = [...new Set([...missedAtTarget, ...(r.status === "below" ? missedBelow : []), ...(target <= 13 ? at(target) : [])])];
+  return list.slice(0, 4);
 }
+
+/** The grade level a subject needs to show next. */
+export const nextTarget = (r: SubjectResult) => Math.min(13, Math.max(0, r.working + 1));

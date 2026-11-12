@@ -80,7 +80,7 @@ export async function createDemoSchool() {
     const seen: Record<string, number> = {};
     const answers = questions.map(q => {
       const k = q.sid + q.tier; seen[k] = (seen[k] ?? 0) + 1;
-      return answerFor(s.profile, q.tier, seen[k], sids.indexOf(q.sid));
+      return answerFor(s.profile, q.tier!, seen[k], sids.indexOf(q.sid));
     });
     const results = toStored(scoreAssessment(s.grade, sids, questions, answers));
     const completedAt = addDays(new Date(), -((idx % 5) + 2));

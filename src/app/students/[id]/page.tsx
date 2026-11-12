@@ -7,11 +7,12 @@ import { Shell } from "@/components/Shell";
 import { Ruler, StatusPill } from "@/components/Status";
 import { PlanView, type PlanData } from "@/components/PlanView";
 import { latestScored, countStatuses } from "@/lib/records";
-import { buildPlan, MODE_LABEL, nextLevelSkills } from "@/lib/plan";
+import { buildPlan, MODE_LABEL, nextLevelSkills, nextTarget } from "@/lib/plan";
 import { type Status, type StoredResult } from "@/lib/assessment";
 import { addDays, fmtDate, fmtStamp, MONTHS, todayIn, WEEKDAYS } from "@/lib/dates";
 import { gradeName, plural } from "@/lib/subjects";
-import { SUBJECT_BY_ID } from "@/lib/subjects";
+import { SUBJECT_BY_ID, isSubjectId } from "@/lib/subjects";
+import { practiceSummary } from "@/lib/practice";
 import { startAssessment } from "@/app/student/actions";
 import { resetPassword, updateStudentGrade } from "@/app/school/actions";
 
@@ -29,11 +30,13 @@ export default async function StudentProfile({ params, searchParams }: { params:
   const self = viewer.id === student.id;
   const staff = await canManageStudent(viewer, id);
   const today = todayIn(school.timezone);
-  const [scored, history, attendance, reports] = await Promise.all([
+  const [scored, history, attendance, reports, practice, recentSets] = await Promise.all([
     latestScored(id),
     db.assessment.findMany({ where: { studentId: id, status: "COMPLETE" }, orderBy: { completedAt: "desc" }, select: { id: true, completedAt: true, grade: true, results: true } }),
     db.attendance.findMany({ where: { studentId: id, date: { gte: addDays(today, -30) } } }),
     db.calendarEvent.findMany({ where: { schoolId: school.id, kind: "REPORT" } }),
+    practiceSummary([id], 7).then(m => m.get(id)),
+    db.practiceSession.findMany({ where: { studentId: id, completedAt: { not: null } }, orderBy: { completedAt: "desc" }, take: 6 }),
   ]);
   const grade = student.grade ?? 0;
   const who = self ? "You" : student.firstName;
@@ -43,7 +46,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
   let planData: PlanData | null = null;
   if (scored) {
     const g = scored.assessment.grade;
-    const p = buildPlan({ grade: g, results: scored.results, today, yearEnd: school.yearEnd, extraMilestones: reports.map(r => ({ date: r.startDate, title: r.title })) });
+    const p = buildPlan({ grade: g, results: scored.results, today, yearEnd: school.yearEnd, extraMilestones: reports.map(r => ({ date: r.startDate, title: r.title })), skillsAt: scored.skillsAt });
     const statusOf = Object.fromEntries(scored.results.map(r => [r.sid, r.status]));
     planData = {
       todayLabel: fmtDate(today, { weekday: "long", month: "long", day: "numeric" }),
@@ -88,20 +91,20 @@ export default async function StudentProfile({ params, searchParams }: { params:
             <div className="tablewrap"><table>
               <thead><tr><th>Subject</th><th>Placement</th><th>Level</th><th>To reach the next level, {who.toLowerCase() === "you" ? "show you can" : `${student.firstName} needs to show`}…</th></tr></thead>
               <tbody>{scored.results.map(r => {
-                const req = nextLevelSkills(r, scored.assessment.grade);
-                const target = r.status === "below" ? "At grade level" : r.status === "at" ? "Above grade level" : "Two grades ahead";
+                const req = nextLevelSkills(r, scored.assessment.grade, scored.skillsAt);
+                const target = `Show ${gradeName(nextTarget(r))} work`;
                 return (
                   <tr key={r.sid}>
                     <td><b>{r.name}</b><br /><span className="small muted num">{r.correct}/{r.total} correct</span></td>
-                    <td><Ruler status={r.status} grade={scored.assessment.grade} /></td>
-                    <td><StatusPill status={r.status} /><br /><span className="small muted">Level {r.level}</span></td>
+                    <td><Ruler status={r.status} grade={scored.assessment.grade} working={r.working} /></td>
+                    <td><StatusPill status={r.status} /><br /><span className="small muted">Level {r.level} · working at {r.working < 0 ? "pre-Kindergarten" : gradeName(r.working)} level</span></td>
                     <td className="small"><span className="muted">Next: {target}</span>
                       <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>{req.slice(0, 4).map(s => <li key={s}>{s}</li>)}</ul>
                       {(staff || viewer.role === "PARENT" || self) && (
                         <details className="items"><summary>See the {r.total} questions</summary>
                           <div className="itemlist">{r.items.map(x => (
                             <div key={x.k} className="item"><span className={x.ok ? "ok" : "no"}>{x.ok ? "✓" : "✗"}</span>
-                              <div>{x.d[2]}<small>{x.tier === "below" ? "Grade below" : x.tier === "at" ? "Grade level" : "Grade above"} · {x.d[1]} · {x.ok ? "Correct" : `Answer: ${x.ans === -1 ? "Not sure yet" : x.d[3 + (x.ans as number)]} · Correct: ${x.d[3]}`}</small></div>
+                              <div>{x.d.prompt}<small>{gradeName(x.p)} question · {x.d.skill} · {x.ok ? "Correct" : `Answer: ${x.ans === -1 ? "Not sure yet" : x.d.choices[x.ans as number]} · Correct: ${x.d.choices[0]}`}</small></div>
                             </div>
                           ))}</div>
                         </details>
@@ -116,6 +119,23 @@ export default async function StudentProfile({ params, searchParams }: { params:
           {planData && <PlanView plan={planData} />}
         </>
       )}
+
+      <section className="card">
+        <h2>Practice, last 7 days</h2>
+        {practice ? (
+          <>
+            <p className="num">{practice.sets} set{practice.sets === 1 ? "" : "s"} · {practice.questions} questions · {Math.round((practice.correct / Math.max(1, practice.questions)) * 100)}% correct · about {practice.minutes} minutes</p>
+            <div className="chips">{[...practice.bySubject].map(([sid, v]) => (
+              <span key={sid} className="chip">{isSubjectId(sid) ? SUBJECT_BY_ID[sid].name(grade) : sid}: {v.correct}/{v.questions}</span>
+            ))}</div>
+          </>
+        ) : <p className="muted small">{self ? "No practice yet this week. Use the Practise now buttons on your Today screen." : "No practice sets completed this week."}</p>}
+        {recentSets.length > 0 && (
+          <div className="stack" style={{ gap: 4 }}>{recentSets.map(r => (
+            <p key={r.id} className="small muted num">{fmtStamp(r.completedAt!, school.timezone, { weekday: "short", month: "short", day: "numeric" })} · {isSubjectId(r.subject) ? SUBJECT_BY_ID[r.subject].name(grade) : r.subject}{r.skill ? ` · ${r.skill}` : ""} · {gradeName(r.grade)} · {r.correct}/{r.total}</p>
+          ))}</div>
+        )}
+      </section>
 
       <section className="grid2" style={{ alignItems: "start" }}>
         <div className="card">

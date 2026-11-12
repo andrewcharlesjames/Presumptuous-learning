@@ -7,6 +7,7 @@ import { isoDate, todayIn } from "./dates";
 import { familyCode, hashPassword, shortCode } from "./passwords";
 import { DEFAULT_DAY, ontarioYear } from "./templates";
 import { schoolYearOf } from "./dates";
+import { lookupFor, skillIndex } from "./questions";
 
 /** Latest completed assessment summary for each student. */
 export async function latestResults(studentIds: string[]) {
@@ -27,8 +28,11 @@ export async function latestResults(studentIds: string[]) {
 export async function latestScored(studentId: string) {
   const a = await db.assessment.findFirst({ where: { studentId, status: "COMPLETE" }, orderBy: { completedAt: "desc" } });
   if (!a) return null;
-  const results = scoreAssessment(a.grade, a.subjects as SubjectId[], a.questions as StoredQuestion[], a.answers as Answer[]);
-  return { assessment: a, results };
+  const questions = a.questions as StoredQuestion[];
+  const lookup = await lookupFor(questions);
+  const results = scoreAssessment(a.grade, a.subjects as SubjectId[], questions, a.answers as Answer[], lookup, a.mode === "adaptive" ? "adaptive" : "fixed");
+  const skillsAt = await skillIndex(a.subjects as SubjectId[]);
+  return { assessment: a, results, skillsAt };
 }
 
 export function countStatuses(results: StoredResult[]) {
