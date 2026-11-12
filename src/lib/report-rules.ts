@@ -1,4 +1,5 @@
 // Ontario-style report rules (no database): terms, marks, learning skills and comment drafts.
+import { inSentence } from "./words.ts";
 
 export const TERMS = [
   { n: 0, name: "Fall progress report", short: "Fall progress", season: "November" },
@@ -36,7 +37,7 @@ export function markFor(term: Term, grade: number, level: 1 | 2 | 3 | 4, status:
 }
 
 export type Evidence = {
-  schoolDays: number; present: number; late: number; completeDays: number; reflections: number;
+  schoolDays: number; present: number; late: number; absent: number; completeDays: number; reflections: number;
   practiceSets: number; assignmentsDue: number; assignmentsDone: number; projectStepsApproved: number; projectStepsDue: number; masteredSkills: number;
 };
 
@@ -48,7 +49,8 @@ const rate = (x: number): Rating => (x >= 0.85 ? "E" : x >= 0.7 ? "G" : x >= 0.5
  */
 export function suggestSkills(e: Evidence): SkillRatings {
   if (e.schoolDays < 5) return {};
-  const attendance = (e.present + e.late * 0.5) / e.schoolDays;
+  const marked = e.present + e.late + e.absent; // only days a coach marked count for attendance
+  const attendance = marked ? (e.present + e.late * 0.5) / marked : 1;
   const work = e.assignmentsDue ? e.assignmentsDone / e.assignmentsDue : attendance;
   const steps = e.projectStepsDue ? e.projectStepsApproved / e.projectStepsDue : null;
   return {
@@ -66,7 +68,7 @@ const join = (xs: string[]) => xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -
 export function draftComment(o: { first: string; subject: string; status: "below" | "at" | "above"; workingGrade: string; mastered: string[]; next: string[] }): string {
   const where = o.status === "above" ? `is working above grade level in ${o.subject}, at a ${o.workingGrade} level`
     : o.status === "at" ? `is working at grade level in ${o.subject}` : `is building the foundations in ${o.subject} and is working at a ${o.workingGrade} level`;
-  const strength = o.mastered.length ? ` ${o.first} has shown mastery of ${join(o.mastered.slice(0, 3).map(s => s.toLowerCase()))}.` : "";
-  const next = o.next.length ? ` Next steps: ${o.first} will work on ${join(o.next.slice(0, 2).map(s => s.toLowerCase()))}.` : "";
+  const strength = o.mastered.length ? ` ${o.first} has shown mastery of ${join(o.mastered.slice(0, 3).map(inSentence))}.` : "";
+  const next = o.next.length ? ` Next steps: ${o.first} will work on ${join(o.next.slice(0, 2).map(inSentence))}.` : "";
   return `${o.first} ${where}.${strength}${next}`.replace(/\s+/g, " ").trim();
 }

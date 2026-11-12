@@ -47,7 +47,7 @@ test("marks: progress words in the fall, letters for grades 1-6, percentages for
 });
 
 test("learning skills are suggested from the term's evidence, and not before there's enough", () => {
-  const strong = { schoolDays: 40, present: 39, late: 1, completeDays: 36, reflections: 38, practiceSets: 45, assignmentsDue: 4, assignmentsDone: 4, projectStepsApproved: 2, projectStepsDue: 2, masteredSkills: 10 };
+  const strong = { schoolDays: 40, present: 39, late: 1, absent: 0, completeDays: 36, reflections: 38, practiceSets: 45, assignmentsDue: 4, assignmentsDone: 4, projectStepsApproved: 2, projectStepsDue: 2, masteredSkills: 10 };
   assert.deepEqual(suggestSkills(strong), { responsibility: "E", organization: "E", independent: "E", initiative: "E", selfRegulation: "E" });
   const weak = { ...strong, completeDays: 10, reflections: 12, practiceSets: 5, assignmentsDone: 1, projectStepsApproved: 0, masteredSkills: 1 };
   const w = suggestSkills(weak);
@@ -59,4 +59,12 @@ test("learning skills are suggested from the term's evidence, and not before the
 test("comment drafts name a strength and a next step", () => {
   const c = draftComment({ first: "Amira", subject: "Mathematics", status: "above", workingGrade: "Grade 4", mastered: ["Fractions of a set", "Skip counting"], next: ["Decimal tenths"] });
   assert.equal(c, "Amira is working above grade level in Mathematics, at a Grade 4 level. Amira has shown mastery of fractions of a set and skip counting. Next steps: Amira will work on decimal tenths.");
+});
+
+test("attendance only counts marked days, and skill names keep their capitals", () => {
+  const e = { schoolDays: 40, present: 10, late: 0, absent: 0, completeDays: 36, reflections: 38, practiceSets: 45, assignmentsDue: 0, assignmentsDone: 0, projectStepsApproved: 0, projectStepsDue: 0, masteredSkills: 10 };
+  assert.equal(suggestSkills(e).responsibility, "E"); // 30 unmarked days aren't absences
+  assert.equal(suggestSkills({ ...e, absent: 10 }).responsibility, "S");
+  const c = draftComment({ first: "Amira", subject: "Social Studies", status: "at", workingGrade: "Grade 3", mastered: [], next: ["Political regions of Canada", "Canadian symbols"] });
+  assert.match(c, /work on political regions of Canada and Canadian symbols\./);
 });

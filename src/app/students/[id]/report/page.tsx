@@ -52,7 +52,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   const snap = report.snapshot as Snapshot | null;
   const live = snap ? null : await reportFacts(school, student, schoolYear, term);
   const subjects = snap?.subjects ?? live!.subjects;
-  const attendance = snap?.attendance ?? { present: live!.evidence.present, late: live!.evidence.late, absent: Math.max(0, live!.evidence.schoolDays - live!.evidence.present - live!.evidence.late) };
+  const attendance = snap?.attendance ?? { present: live!.evidence.present, late: live!.evidence.late, absent: live!.evidence.absent };
   const assessedAt = snap ? (snap.assessedAt ? new Date(snap.assessedAt) : null) : live!.assessedAt;
   const ratings = report.learningSkills as SkillRatings;
   const comments = report.comments as Record<string, string>;

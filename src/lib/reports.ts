@@ -17,10 +17,13 @@ export function termRange(school: Pick<School, "yearStart" | "yearEnd">, schoolY
   return { from: utcDate(y + 1, 2, 1), to: school.yearEnd };
 }
 
-export async function evidence(school: School, studentId: string, from: Date, to: Date): Promise<Evidence> {
+/** What the platform saw from `from` (or the day the student joined, if later) to `to` (or today). */
+export async function evidence(school: School, studentId: string, termFrom: Date, to: Date, joined?: Date): Promise<Evidence> {
   const today = todayIn(school.timezone);
   const end = to < today ? to : today;
-  if (end < from) return { schoolDays: 0, present: 0, late: 0, completeDays: 0, reflections: 0, practiceSets: 0, assignmentsDue: 0, assignmentsDone: 0, projectStepsApproved: 0, projectStepsDue: 0, masteredSkills: 0 };
+  const joinDay = joined ? todayIn(school.timezone, joined) : termFrom;
+  const from = joinDay > termFrom ? joinDay : termFrom;
+  if (end < from) return { schoolDays: 0, present: 0, late: 0, absent: 0, completeDays: 0, reflections: 0, practiceSets: 0, assignmentsDue: 0, assignmentsDone: 0, projectStepsApproved: 0, projectStepsDue: 0, masteredSkills: 0 };
   const a = dayBounds(from, school.timezone).start, b = dayBounds(end, school.timezone).end;
   const [statuses, att, practice, assignments, steps, mastered] = await Promise.all([
     dayStatuses(school, [studentId], from, end),
@@ -34,7 +37,7 @@ export async function evidence(school: School, studentId: string, from: Date, to
   const done = await completion(assignments);
   const count = (s: string) => att.find(x => x.status === s)?._count ?? 0;
   return {
-    schoolDays: days.length, present: count("PRESENT"), late: count("LATE"),
+    schoolDays: days.length, present: count("PRESENT"), late: count("LATE"), absent: count("ABSENT"),
     completeDays: days.filter(d => d.complete).length, reflections: days.filter(d => d.reflected).length,
     practiceSets: practice, assignmentsDue: assignments.length, assignmentsDone: assignments.filter(x => done.has(`${x.id}:${studentId}`)).length,
     projectStepsApproved: steps.filter(s => s.status === "APPROVED").length, projectStepsDue: steps.length, masteredSkills: mastered,
@@ -44,11 +47,11 @@ export async function evidence(school: School, studentId: string, from: Date, to
 export type ReportSubject = { sid: string; name: string; level: 1 | 2 | 3 | 4; status: "below" | "at" | "above"; working: string; mark: string; draft: string };
 
 /** Everything a report shows that comes from the platform: subject marks, comment drafts and suggested learning skills. */
-export async function reportFacts(school: School, student: { id: string; firstName: string; grade: number | null }, schoolYear: number, term: Term) {
+export async function reportFacts(school: School, student: { id: string; firstName: string; grade: number | null; createdAt: Date }, schoolYear: number, term: Term) {
   const grade = student.grade ?? 0;
   const [scored, mastered] = await Promise.all([latestScored(student.id), masteredSet(student.id)]);
   const { from, to } = termRange(school, schoolYear, term);
-  const ev = await evidence(school, student.id, from, to);
+  const ev = await evidence(school, student.id, from, to, student.createdAt);
   const masteredRows = await db.skillProgress.findMany({ where: { studentId: student.id, state: "MASTERED" }, orderBy: { masteredAt: "desc" }, select: { subject: true, skill: true } });
   const subjects: ReportSubject[] = (scored?.results ?? []).map(r => {
     const next = nextLevelSkills(r, scored!.assessment.grade, scored!.skillsAt).filter(q => !mastered.has(`${r.sid}|${q.skill}`)).map(q => q.skill);

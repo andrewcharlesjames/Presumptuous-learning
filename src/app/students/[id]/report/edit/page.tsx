@@ -55,7 +55,7 @@ export default async function EditReport({ params, searchParams }: { params: Pro
           <input type="hidden" name="studentId" value={id} /><input type="hidden" name="term" value={term} />
           <section className="card">
             <h2>Learning skills<Info label="Learning skills">{"Ontario's six learning skills and work habits, rated E (Excellent), G (Good), S (Satisfactory) or N (Needs improvement). The suggestion comes from what the platform saw this term; you decide."}</Info></h2>
-            <p className="small muted">This term: {ev.schoolDays} school days so far · present {ev.present}, late {ev.late} · {ev.completeDays} full days · {ev.reflections} reflections · {ev.practiceSets} practice sets · {ev.assignmentsDone} of {ev.assignmentsDue} assignments done · {ev.projectStepsApproved} of {ev.projectStepsDue} project steps approved · {ev.masteredSkills} skills mastered.</p>
+            <p className="small muted">This term: {ev.schoolDays} school days so far (since {student.firstName} joined, if later) · present {ev.present}, late {ev.late}, absent {ev.absent} · {ev.completeDays} full days · {ev.reflections} reflections · {ev.practiceSets} practice sets · {ev.assignmentsDone} of {ev.assignmentsDue} assignments done · {ev.projectStepsApproved} of {ev.projectStepsDue} project steps approved · {ev.masteredSkills} skills mastered.</p>
             <div className="grid3">
               {SKILLS.map(s => (
                 <label key={s.key} className="field" htmlFor={`skill_${s.key}`}>

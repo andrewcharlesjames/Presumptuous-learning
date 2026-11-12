@@ -43,7 +43,7 @@ export async function saveReport(form: FormData) {
   const ev = facts.evidence;
   const snapshot = {
     subjects: facts.subjects.map(x => ({ sid: x.sid, name: x.name, mark: x.mark, level: x.level })),
-    attendance: { present: ev.present, late: ev.late, absent: Math.max(0, ev.schoolDays - ev.present - ev.late) },
+    attendance: { present: ev.present, late: ev.late, absent: ev.absent },
     assessedAt: facts.assessedAt?.toISOString() ?? null,
   };
   if (final) {

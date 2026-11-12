@@ -1,3 +1,5 @@
+import { inSentence } from "./words.ts";
+export { inSentence };
 import { METHODS, type Mode, type SubjectId } from "./bank.ts";
 import { builtinPool, focusFor, type Focus, type Status, type SubjectResult } from "./assessment.ts";
 import { addDays, MONTHS, mondayOf, weekdayIndex } from "./dates.ts";
@@ -10,12 +12,7 @@ export const MODE_LABEL: Record<BlockMode, string> = { repair: "Repair", practic
 export type HowTo = { before: string; skill: string; after: string };
 export type PlanBlock = { min: number; title: string; mode: BlockMode; sid?: SubjectId; skill?: string; grade?: number; how: HowTo };
 
-const PROPER = /^(Canada|Canadian|Canada's|Ontario|French|First|Indigenous|Shakespearean|Pythagorean|Ohm's|MLA|SMART|EQAO|OSSLT|Big-O|Renaissance|Impressionism|Maslow's|Le|Gibbs)\b/;
 /** "Physical regions of Canada" → "physical regions of Canada"; leaves proper nouns and acronyms alone. */
-export function inSentence(skill: string): string {
-  if (PROPER.test(skill) || /^[A-Z0-9]{2,}/.test(skill)) return skill;
-  return skill.charAt(0).toLowerCase() + skill.slice(1);
-}
 
 export function howTo(sid: SubjectId, f: Focus, grade: number): HowTo {
   let t = METHODS[sid][f.mode];

@@ -165,7 +165,7 @@ export async function createDemoSchool() {
     const student = await db.user.create({
       data: {
         role: "STUDENT", schoolId: school.id, username, firstName: s.first, lastName: s.last, grade: s.grade,
-        passwordHash: studentHash, familyCode: await uniqueFamilyCode(), createdAt: addDays(new Date(), -60), // joined in September, so past days count
+        passwordHash: studentHash, familyCode: await uniqueFamilyCode(), createdAt: addDays(new Date(), -16), // joined just before the demo history starts, so past days count
         studentIn: { create: { classId: s.grade <= 4 ? classA.id : classB.id } },
       },
     });

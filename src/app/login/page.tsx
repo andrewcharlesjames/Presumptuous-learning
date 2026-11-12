@@ -18,6 +18,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <header className="topbar"><Logo /></header>
       <main className="authbox stack">
         <h1>Sign in<Info label="Signing in">{"Students: choose Student and type your school code, username and password (your coach or the office has them). Parents, coaches and admins: use your email and password. New parent? Use Parents: join with the family code from the school. Forgot your password? Adults: use Forgot your password to get an email link. Students: ask your coach. Staff and parents can also use Sign in with Google or Microsoft once it is connected."}</Info></h1>
+        <p className="tagline">Reaching beyond what&apos;s expected.</p>
         {ssoError && <p className="flash error" role="alert"><span>{ssoError}</span></p>}
         <LoginForms providers={ssoProviders()} />
         <p className="small muted">Parent with a family code from your child&apos;s school? <Link href="/join">Create your parent account</Link>.</p>
