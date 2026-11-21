@@ -19,7 +19,10 @@ export function QuestionForm({ q, subject, grade }: { q?: Question; subject?: st
         <label className="field">Wrong answer 2<input id="wrong2" name="wrong2" type="text" defaultValue={q?.wrong2} required /></label>
         <label className="field">Wrong answer 3<input id="wrong3" name="wrong3" type="text" defaultValue={q?.wrong3} required /></label>
       </div>
-      <label className="field">Explanation<span className="hint">Shown to students after a practice question. One or two plain sentences.</span><textarea id="explanation" name="explanation" defaultValue={q?.explanation} style={{ fontFamily: "inherit", fontSize: ".95rem", minHeight: 70 }} /></label>
+      <label className="field">Why the answer is right<span className="hint">Shown to students after every answer, right or wrong. Teach the idea in one or two plain sentences.</span><textarea id="explanation" name="explanation" defaultValue={q?.explanation} style={{ fontFamily: "inherit", fontSize: ".95rem", minHeight: 70 }} /></label>
+      <div className="form-grid">
+        {[1, 2, 3].map(n => <label key={n} className="field">Why wrong answer {n} is wrong<span className="hint">Shown when a student picks it. One sentence on the mistake behind it.</span><textarea id={`why${n}`} name={`why${n}`} defaultValue={q?.whyWrong?.[n - 1] ?? ""} style={{ fontFamily: "inherit", fontSize: ".9rem", minHeight: 60 }} /></label>)}
+      </div>
       <label className="check"><input type="checkbox" name="reviewed" id="reviewed" defaultChecked={q?.reviewed} />Reviewed by a certified teacher</label>
       <div><button className="btn primary">{q ? "Save question" : "Add question"}</button></div>
     </form>

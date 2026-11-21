@@ -14,7 +14,7 @@ import { TUTOR_MODEL, tutorConfigured } from "./tutor";
  * Variant 1 teaches the skill; variants 2 and 3 reteach it a different way after a missed mastery check.
  * Each lesson carries its own "try it" question and five mastery-check questions.
  */
-const Question = z.object({ prompt: z.string(), correct: z.string(), wrong: z.array(z.string()), explanation: z.string() });
+const Question = z.object({ prompt: z.string(), correct: z.string(), wrong: z.array(z.string()), explanation: z.string(), whyWrong: z.array(z.string()) });
 export const LessonSchema = z.object({
   title: z.string(),
   whyItMatters: z.string(),
@@ -38,8 +38,11 @@ Write for the student, in second person, with Canadian spelling, metric units an
 - explanation: 2 to 4 short paragraphs (each 1 to 3 sentences) that build the idea step by step. For Kindergarten to Grade 2, use very simple words; a grown-up will read it aloud.
 - examples: exactly 2 worked examples, each with a problem, 2 to 4 numbered-in-order steps, and the answer.
 - commonMistake: one mistake students often make with this skill and how to avoid it.
-- tryIt: one multiple-choice question with 1 correct and exactly 3 wrong answers, plus a one-sentence explanation.
-- checkQuestions: exactly 5 new multiple-choice questions on this same skill, at this grade, each with 1 correct answer, exactly 3 wrong answers based on real misconceptions, and a one-sentence explanation. Vary them; do not reuse the examples or the tryIt question.
+- tryIt: one multiple-choice question with 1 correct and exactly 3 wrong answers, plus an explanation and whyWrong (see below).
+- checkQuestions: exactly 5 new multiple-choice questions on this same skill, at this grade, each with 1 correct answer, exactly 3 wrong answers based on real misconceptions, an explanation and whyWrong. Vary them; do not reuse the examples or the tryIt question.
+Every question teaches whether the student is right or wrong:
+- explanation: one or two sentences saying why the correct answer is right, teaching the idea, not just restating it.
+- whyWrong: exactly one sentence per wrong answer, in the same order as wrong, naming the mistake that leads to it and why it's wrong. Refer to answers by what they say, never by letter.
 Always spell practice with a c in every form (practice, practiced, practicing), including as a verb.
 Everything must be accurate and match the Ontario curriculum for the grade. No images, diagrams, links or markdown. Questions must be self-contained text.`;
 
@@ -116,7 +119,7 @@ function clean(c: LessonContent): LessonContent | null {
     const choices = [q.correct, ...q.wrong].map(s => s.trim());
     return q.prompt.trim() && q.wrong.length >= 3 && new Set(choices.slice(0, 4)).size === 4 && choices.slice(0, 4).every(Boolean);
   };
-  const fix = (q: z.infer<typeof Question>) => ({ ...q, wrong: q.wrong.slice(0, 3) });
+  const fix = (q: z.infer<typeof Question>) => ({ ...q, wrong: q.wrong.slice(0, 3), whyWrong: (q.whyWrong ?? []).slice(0, 3) });
   const checks = c.checkQuestions.filter(ok).map(fix);
   if (!ok(c.tryIt) || checks.length < 3 || !c.explanation.length) return null;
   return { ...c, tryIt: fix(c.tryIt), checkQuestions: checks.slice(0, MASTERY_SET), examples: c.examples.slice(0, 3) };
@@ -129,7 +132,7 @@ async function saveCheckQuestions(lesson: Lesson, c: LessonContent, strand: stri
     data: c.checkQuestions.map((q, n) => ({
       key: lessonQuestionKey(lesson.id, n), subject: lesson.subject, grade: lesson.grade, strand: strand.slice(0, 80),
       skill: lesson.skill, prompt: q.prompt, correct: q.correct, wrong1: q.wrong[0], wrong2: q.wrong[1], wrong3: q.wrong[2],
-      explanation: q.explanation, active: false, source: "lesson",
+      explanation: q.explanation, whyWrong: q.whyWrong.length === 3 ? q.whyWrong : [], active: false, source: "lesson",
     })),
   });
 }
@@ -139,7 +142,7 @@ export async function lessonCheckItems(lessonId: string): Promise<BankItem[]> {
   const rows = await db.question.findMany({ where: { key: { startsWith: `lesson-${lessonId}-` } }, orderBy: { key: "asc" } });
   return rows.map(r => ({
     id: r.id, sid: r.subject as SubjectId, grade: r.grade, strand: r.strand, skill: r.skill, prompt: r.prompt,
-    choices: [r.correct, r.wrong1, r.wrong2, r.wrong3], explanation: r.explanation,
+    choices: [r.correct, r.wrong1, r.wrong2, r.wrong3], explanation: r.explanation, whyWrong: r.whyWrong,
   }));
 }
 

@@ -276,3 +276,5 @@ a.tab { text-decoration: none; display: inline-block; }
 .monthgrid .tag { border-radius: 5px; padding: 2px 5px; background: var(--sunk); line-height: 1.25; }
 .monthgrid .tag.step { background: var(--above-soft); } .monthgrid .tag.assign { background: var(--at-soft); } .monthgrid .tag.event { background: var(--sunk); color: var(--muted); } .monthgrid .tag.launch { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
 @media (max-width: 760px) { .weekgrid { grid-template-columns: 1fr; } .monthgrid .cell { min-height: 64px; font-size: .68rem; } .monthgrid .tag { padding: 1px 3px; } }
+.itemlist .why { display: block; color: var(--ink); margin-top: 2px; }
+.teach b { font-weight: 700; }

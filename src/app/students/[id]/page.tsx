@@ -166,7 +166,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
                         <details className="items"><summary>See the {r.total} questions</summary>
                           <div className="itemlist">{r.items.map(x => (
                             <div key={x.k} className="item"><span className={x.ok ? "ok" : "no"}>{x.ok ? "✓" : "✗"}</span>
-                              <div>{x.d.prompt}<small>{gradeName(x.p)} question · {x.d.skill} · {x.ok ? "Correct" : `Answer: ${x.ans === -1 ? "Not sure yet" : x.d.choices[x.ans as number]} · Correct: ${x.d.choices[0]}`}</small></div>
+                              <div>{x.d.prompt}<small>{gradeName(x.p)} question · {x.d.skill} · {x.ok ? "Correct" : `Answer: ${x.ans === -1 ? "Not sure yet" : x.d.choices[x.ans as number]} · Correct: ${x.d.choices[0]}`}</small>{(x.d.explanation || (!x.ok && typeof x.ans === "number" && x.ans > 0 && x.d.whyWrong?.[x.ans - 1])) && <small className="why">{!x.ok && typeof x.ans === "number" && x.ans > 0 && x.d.whyWrong?.[x.ans - 1] ? `${x.d.whyWrong[x.ans - 1]} ` : ""}{x.d.explanation}</small>}</div>
                             </div>
                           ))}</div>
                         </details>

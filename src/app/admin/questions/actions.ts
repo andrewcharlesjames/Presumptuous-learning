@@ -7,6 +7,8 @@ import { db } from "@/lib/db";
 import { setFlash } from "@/lib/flash";
 import { isSubjectId } from "@/lib/subjects";
 import { draftQuestions } from "@/lib/drafting";
+import { fillTeachingNotes } from "@/lib/teaching";
+import { tutorConfigured } from "@/lib/tutor";
 
 const schema = z.object({
   subject: z.string().refine(isSubjectId, "Choose a subject."),
@@ -19,6 +21,9 @@ const schema = z.object({
   wrong2: z.string().trim().min(1).max(200),
   wrong3: z.string().trim().min(1).max(200),
   explanation: z.string().trim().max(1000).default(""),
+  why1: z.string().trim().max(500).default(""),
+  why2: z.string().trim().max(500).default(""),
+  why3: z.string().trim().max(500).default(""),
 });
 
 export async function saveQuestion(form: FormData) {
@@ -30,7 +35,8 @@ export async function saveQuestion(form: FormData) {
     await setFlash({ tone: "error", text: parsed.error.issues[0]?.message ?? "Check every field." });
     redirect(back);
   }
-  const d = parsed.data;
+  const { why1, why2, why3, ...d } = parsed.data;
+  const whyWrong = why1 && why2 && why3 ? [why1, why2, why3] : [];
   const choices = [d.correct, d.wrong1, d.wrong2, d.wrong3];
   if (new Set(choices).size < 4) {
     await setFlash({ tone: "error", text: "The four answer choices must all be different." });
@@ -38,8 +44,8 @@ export async function saveQuestion(form: FormData) {
   }
   const reviewed = form.get("reviewed") === "on";
   const q = id
-    ? await db.question.update({ where: { id }, data: { ...d, reviewed } })
-    : await db.question.create({ data: { ...d, reviewed, key: `custom-${crypto.randomUUID()}`, source: "custom" } });
+    ? await db.question.update({ where: { id }, data: { ...d, whyWrong, reviewed } })
+    : await db.question.create({ data: { ...d, whyWrong, reviewed, key: `custom-${crypto.randomUUID()}`, source: "custom" } });
   await setFlash({ tone: "ok", text: id ? "Question saved." : "Question added to the bank." });
   revalidatePath("/admin/questions");
   redirect(`/admin/questions?subject=${q.subject}&grade=${q.grade}`);
@@ -85,4 +91,16 @@ export async function deleteDraft(form: FormData) {
   if (q?.source === "ai-draft") await db.question.delete({ where: { id } });
   revalidatePath("/admin/questions");
   redirect(q ? `/admin/questions?subject=${q.subject}&grade=${q.grade}` : "/admin/questions");
+}
+
+/** Write missing teaching notes now, in the background. */
+export async function fillNotesNow() {
+  await requireUser(["PLATFORM_ADMIN"]);
+  if (!tutorConfigured()) {
+    await setFlash({ tone: "error", text: "AI isn't connected (ANTHROPIC_API_KEY), so teaching notes can't be written yet." });
+    redirect("/admin/questions");
+  }
+  void fillTeachingNotes(1000);
+  await setFlash({ tone: "ok", text: "Writing teaching notes now. Refresh this page in a few minutes to see the count go down." });
+  redirect("/admin/questions");
 }

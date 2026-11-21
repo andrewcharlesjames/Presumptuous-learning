@@ -23,7 +23,7 @@ export function ensureBankSeeded(): Promise<void> {
 export function toItem(q: Question): BankItem {
   return {
     id: q.id, sid: q.subject as SubjectId, grade: q.grade, strand: q.strand, skill: q.skill, prompt: q.prompt,
-    choices: [q.correct, q.wrong1, q.wrong2, q.wrong3], explanation: q.explanation,
+    choices: [q.correct, q.wrong1, q.wrong2, q.wrong3], explanation: q.explanation, whyWrong: q.whyWrong,
   };
 }
 

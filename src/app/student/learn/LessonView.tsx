@@ -86,8 +86,14 @@ function TryIt({ q }: { q: LessonContent["tryIt"] }) {
       </div>
       {picked !== null && (
         <div className={`flash ${picked === 0 ? "ok" : "error"}`} role="status">
-          <span>{picked === 0 ? "Yes, that's it." : `Not quite. The answer is ${q.correct}.`}</span>
-          <span style={{ fontWeight: 400 }}>{q.explanation}</span>
+          {picked === 0 ? <>
+            <span>Yes, that&apos;s right!</span>
+            <span style={{ fontWeight: 400 }}><b>Why:</b> {q.explanation}</span>
+          </> : <>
+            <span>Not quite. You chose “{choices[picked]}”.</span>
+            {q.whyWrong?.[picked - 1] && <span style={{ fontWeight: 400 }}><b>Why that&apos;s not it:</b> {q.whyWrong[picked - 1]}</span>}
+            <span style={{ fontWeight: 400 }}><b>The answer is “{q.correct}”.</b> {q.explanation}</span>
+          </>}
           {picked !== 0 && <button type="button" className="linkbtn" style={{ justifySelf: "start" }} onClick={() => setPicked(null)}>Try it again</button>}
         </div>
       )}

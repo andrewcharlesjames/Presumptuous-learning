@@ -36,7 +36,7 @@ export async function startPractice(form: FormData) {
   redirect(`/student/practice/${s.id}`);
 }
 
-export type Feedback = { ok: boolean; correctText: string; explanation: string; done: boolean; score?: { correct: number; total: number } };
+export type Feedback = { ok: boolean; correctText: string; chosenText: string | null; explanation: string; whyWrong: string; done: boolean; score?: { correct: number; total: number } };
 
 /** Check one practice answer and give feedback straight away. */
 export async function answerPractice(sessionId: string, index: number, choice: number): Promise<Feedback | null> {
@@ -57,7 +57,9 @@ export async function answerPractice(sessionId: string, index: number, choice: n
   return {
     ok: answers[index] === 0,
     correctText: item?.choices[0] ?? "",
+    chosenText: (answers[index] ?? -1) > 0 ? item?.choices[answers[index]!] ?? null : null,
     explanation: item?.explanation ?? "",
+    whyWrong: (answers[index] ?? -1) > 0 ? item?.whyWrong?.[answers[index]! - 1] ?? "" : "",
     done,
     ...(done ? { score: { correct, total: questions.length } } : {}),
   };

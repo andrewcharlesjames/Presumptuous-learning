@@ -1,5 +1,7 @@
 import { Info } from "@/components/Info";
 import Link from "next/link";
+import { missingNotesWhere, notesRunning } from "@/lib/teaching";
+import { fillNotesNow } from "./actions";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
@@ -34,6 +36,7 @@ export default async function QuestionBank({ searchParams }: { searchParams: Pro
     ? await db.question.findMany({ where: { subject, grade }, orderBy: [{ source: "asc" }, { active: "desc" }, { strand: "asc" }, { createdAt: "asc" }] })
     : [];
   const drafts = await db.question.count({ where: { source: "ai-draft" } });
+  const missingNotes = await db.question.count({ where: missingNotesWhere });
   const tone = (n: number) => n >= 10 ? "above" : n >= 6 ? "at" : "below";
 
   return (
@@ -43,6 +46,13 @@ export default async function QuestionBank({ searchParams }: { searchParams: Pro
           <p className="muted small" style={{ marginTop: 6 }}>{total} active questions · {reviewedTotal} reviewed by a certified teacher · {GENERATORS.length} math question generators (Grades K–12) that make fresh questions every time.{drafts > 0 && ` ${drafts} AI drafts waiting for review.`}</p></div>
         <Link className="btn primary" href={`/admin/questions/new${subject ? `?subject=${subject}${grade !== null ? `&grade=${grade}` : ""}` : ""}`}>Add a question</Link>
       </div>
+      <section className="card tight">
+        <div className="spread" style={{ alignItems: "center" }}>
+          <p><b>Teaching notes:</b> {missingNotes === 0 ? "every question teaches why the right answer is right and why each wrong answer is wrong." : <>{missingNotes} question{missingNotes === 1 ? "" : "s"} still need notes.{notesRunning() ? " Writing them now…" : " They're written automatically in the background, about 60 every half hour."}</>}
+            <Info label="Teaching notes">{"After every answer in practice, lessons and mastery checks, students see why the right answer is right, and, if they picked a wrong answer, why that choice is wrong. AI writes these notes once per question (nothing about any student is sent) and you can edit them on any question."}</Info></p>
+          {missingNotes > 0 && !notesRunning() && <form action={fillNotesNow}><button className="btn small">Write them all now</button></form>}
+        </div>
+      </section>
 
       <section className="stack">
         <h2>Coverage<Info label="Coverage">{"How many active questions each subject has at each grade. Thin cells make placement less accurate; add questions or use AI drafting there. Math also has generators that make fresh questions every time."}</Info></h2>

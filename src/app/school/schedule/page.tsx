@@ -1,4 +1,6 @@
 import { Info } from "@/components/Info";
+import Link from "next/link";
+import { fmtClock } from "@/lib/dates";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
@@ -8,13 +10,46 @@ import { resetSchedule, saveSchedule } from "../actions";
 export const metadata = { title: "School day" };
 const KINDS = Object.keys(BLOCK_KIND_LABEL) as BlockKindName[];
 
-export default async function SchedulePage() {
-  const { user, school } = await requireSchoolUser(["SCHOOL_ADMIN"]);
+export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
+  const { user, school } = await requireSchoolUser(["SCHOOL_ADMIN", "COACH"]);
+  const canEdit = user.role === "SCHOOL_ADMIN";
+  const editing = canEdit && (await searchParams).edit === "1";
   const blocks = await db.scheduleBlock.findMany({ where: { schoolId: school.id }, orderBy: { position: "asc" } });
   const rows = [...blocks.map(b => ({ ...b, kind: b.kind as BlockKindName })), ...Array.from({ length: 3 }, (_, i) => ({ id: `new-${i}`, start: "", end: "", title: "", kind: "OTHER" as BlockKindName, focus: "", days: EVERY_DAY }))];
+  if (!editing) {
+    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    return (
+      <Shell user={user}>
+        <div className="spread">
+          <div><span className="eyebrow">{school.name}</span><h1>School day<Info label="School day">{canEdit
+            ? "The timetable every student's Today page follows: Assembly holds the check-in, Academics their lessons, Arts the studio prompt, the Presumptuous Project its business lessons and project work, Reflection the end of the day. It's locked so nothing changes by accident. Click Edit school day to change it."
+            : "Your school's timetable, set by the school admin. Every student's Today page follows it. Ask your school admin if something needs to change."}</Info></h1>
+            <p className="muted small" style={{ marginTop: 6 }}>{canEdit ? "Locked. Every student's Today page follows this timetable." : "Set by your school admin."}</p></div>
+          {canEdit && <Link className="btn" href="/school/schedule?edit=1">Edit school day</Link>}
+        </div>
+        <div className="weekgrid">
+          {DAYS.map((d, i) => {
+            const today = blocks.filter(b => b.days.includes(i)).sort((a, b) => a.start.localeCompare(b.start));
+            return (
+              <div key={d} className="weekday">
+                <h3><span>{d}</span></h3>
+                {today.map(b => (
+                  <div key={b.id} className={`mini ${b.kind === "LIFE_SKILLS" ? "ent" : b.kind === "ACADEMICS" ? "" : b.kind === "ARTS" ? "step" : "assign"}`}>
+                    <span className="small muted">{fmtClock(b.start)}–{fmtClock(b.end)}</span>
+                    <b>{b.title}</b>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </Shell>
+    );
+  }
+
   return (
     <Shell user={user}>
-      <div><span className="eyebrow">{school.name}</span><h1>School day<Info label="School day">{"Your bell schedule. Every student's Today page follows it: Assembly holds the check-in, Academics holds their plan, Arts the studio prompt, the Presumptuous Project its business lessons and project work, Reflection the end-of-day reflection. Use Days for blocks that only run on some weekdays: the default gives the Presumptuous Project 2 hours on Monday, Wednesday and Friday and Arts 2 hours on Tuesday and Thursday. Blocks can't overlap on the same day."}</Info></h1>
+      <div><span className="eyebrow">{school.name}</span><h1>School day<Info label="Editing the school day">{"Your bell schedule. Every student's Today page follows it: Assembly holds the check-in, Academics holds their plan, Arts the studio prompt, the Presumptuous Project its business lessons and project work, Reflection the end-of-day reflection. Use Days for blocks that only run on some weekdays: the default gives the Presumptuous Project 2 hours on Monday, Wednesday and Friday and Arts 2 hours on Tuesday and Thursday. Blocks can't overlap on the same day."}</Info></h1>
         <p className="muted" style={{ marginTop: 8, maxWidth: "62ch" }}>Every student&apos;s Today screen follows this timetable. Core Academics is where each student&apos;s personal plan runs. Leave a title blank to remove a block.</p></div>
       <form action={saveSchedule} className="stack">
         <div className="tablewrap"><table>
@@ -32,7 +67,7 @@ export default async function SchedulePage() {
             </tr>
           ))}</tbody>
         </table></div>
-        <div className="row"><button className="btn primary">Save school day</button></div>
+        <div className="row"><button className="btn primary">Save school day</button><Link className="btn" href="/school/schedule">Cancel</Link></div>
       </form>
       <form action={resetSchedule}><button className="btn small">Restore the default day</button></form>
     </Shell>

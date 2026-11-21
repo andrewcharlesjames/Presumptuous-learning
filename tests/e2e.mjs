@@ -123,6 +123,8 @@ ok((await flashText(R.page, "Saved Studio")).includes("1 student"), "class saved
 const classUrl = R.page.url();
 // schedule edit: bad overlap is rejected
 await R.page.goto(`${BASE}/school/schedule`);
+ok(await R.page.locator("a:has-text('Edit school day')").count() === 1 && await R.page.locator("#start-1").count() === 0, "the school day opens locked, with an Edit button");
+await R.page.click("a:has-text('Edit school day')"); await R.page.waitForURL(/edit=1/);
 await R.page.fill("#start-1", "09:15");
 await R.page.click("button:has-text('Save school day')");
 await R.page.waitForLoadState("networkidle");
@@ -184,7 +186,7 @@ await shot(S.page, "11-student-today-after");
     const content = { title: skill, whyItMatters: "Sample reason.", explanation: ["Sample explanation paragraph."], examples: [{ problem: "Sample problem", steps: ["Step one", "Step two"], answer: "Sample answer" }], commonMistake: "Sample mistake.", tryIt: q(0), checkQuestions: [1, 2, 3, 4, 5].map(q) };
     const lesson = await prisma.lesson.upsert({ where: { subject_grade_skill_variant: { subject, grade, skill, variant: 1 } }, create: { subject, grade, skill, variant: 1, content }, update: { content, active: true } });
     await prisma.question.deleteMany({ where: { key: { startsWith: `lesson-${lesson.id}-` } } });
-    await prisma.question.createMany({ data: content.checkQuestions.map((c, n) => ({ key: `lesson-${lesson.id}-${n}`, subject, grade, strand: "Sample", skill, prompt: c.prompt, correct: c.correct, wrong1: c.wrong[0], wrong2: c.wrong[1], wrong3: c.wrong[2], explanation: c.explanation, active: false, source: "lesson" })) });
+    await prisma.question.createMany({ data: content.checkQuestions.map((c, n) => ({ key: `lesson-${lesson.id}-${n}`, subject, grade, strand: "Sample", skill, prompt: c.prompt, correct: c.correct, wrong1: c.wrong[0], wrong2: c.wrong[1], wrong3: c.wrong[2], explanation: c.explanation, whyWrong: [`Wrong A${n} mixes up the steps.`, `Wrong B${n} uses the wrong rule.`, `Wrong C${n} skips a step.`], active: false, source: "lesson" })) });
   };
   const runCheck = async right => {
     await S.page.click("button:has-text('Start the check')");
@@ -194,6 +196,7 @@ await shot(S.page, "11-student-today-after");
       await opt.first().click();
       await S.page.click("button:has-text('Check')");
       await S.page.waitForSelector(".flash[role=status]");
+      if (i === 0) globalThis.teachText = await S.page.locator(".flash[role=status]").innerText();
       await S.page.click("button.primary");
     }
     await S.page.waitForSelector("h2:has-text('Mastered'), h2:has-text('Not yet')", { timeout: 15000 });
@@ -202,9 +205,10 @@ await shot(S.page, "11-student-today-after");
   await S.page.goto(`${BASE}${hrefs[0]}`);
   ok(await S.page.locator("text=Worked example 1").count() === 1, "lesson shows worked examples");
   await S.page.locator(".opt:has-text('Right answer 0')").click();
-  ok(await S.page.locator("text=Yes, that's it.").count() === 1, "try-it question gives instant feedback");
+  ok(await S.page.locator("text=Yes, that's right!").count() === 1 && await S.page.locator(".flash b:has-text('Why:')").count() === 1, "try-it question teaches why the right answer is right");
   await shot(S.page, "18-lesson");
   await runCheck(false);
+  ok(/You chose “Wrong A/.test(globalThis.teachText) && /Why that.s not it: Wrong A\d mixes up the steps/.test(globalThis.teachText) && /The answer is “Right answer/.test(globalThis.teachText), "a wrong answer teaches why that choice is wrong and why the answer is right");
   ok(await S.page.locator("h2:has-text('Not yet')").count() === 1, "missing the check says Not yet");
   await S.page.click("a:has-text('Learn it another way')");
   await S.page.waitForURL(/\/student\/learn/);
@@ -756,7 +760,7 @@ await shot(pp, "15-phone-dark-student");
     ok(await DC.page.locator("label:has-text('Presumptuous Project: Entrepreneurship & Life Skills') textarea").count() === 1, "report card has a Presumptuous Project section with a drafted comment");
   }
   // timetable editor: per-day blocks and the default week
-  await R.page.goto(`${BASE}/school/schedule`);
+  await R.page.goto(`${BASE}/school/schedule?edit=1`);
   ok(await R.page.locator("select[name=days] option:checked:has-text('Mon, Wed, Fri')").count() >= 2, "default week runs blocks on chosen weekdays");
   await shot(R.page, "58-schedule-days");
 }
@@ -810,6 +814,14 @@ await shot(pp, "15-phone-dark-student");
   A.page.once("dialog", d => d.accept());
   await A.page.locator("tr:has-text('Maple Test Academy')").first().locator("button:has-text('Delete test school')").click();
   ok((await flashText(A.page, "Deleted")).includes("Maple Test Academy"), "admin deletes the test school");
+}
+
+/* 8g. Coaches see the school day read-only */
+{
+  await C.page.goto(`${BASE}/school/schedule`);
+  ok(await C.page.locator("h1:has-text('School day')").count() === 1 && await C.page.locator("a:has-text('Edit school day')").count() === 0, "a coach sees the school day but can't edit it");
+  await C.page.goto(`${BASE}/school/schedule?edit=1`);
+  ok(await C.page.locator("#start-1").count() === 0, "a coach can't open the editor by URL");
 }
 
 /* 8f. Student home cards, My week, Month, catch-up */

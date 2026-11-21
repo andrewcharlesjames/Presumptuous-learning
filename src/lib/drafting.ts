@@ -19,6 +19,7 @@ const Draft = z.object({
     correct: z.string(),
     wrong: z.array(z.string()),
     explanation: z.string(),
+    whyWrong: z.array(z.string()),
   })),
 });
 
@@ -28,7 +29,8 @@ Each question must:
 - have exactly one correct answer and exactly three wrong answers, each based on a real misconception students at that grade have;
 - use Canadian spelling and Canadian or Ontario contexts where natural (metric units, dollars);
 - be self-contained (no images or diagrams), short, and readable for the grade;
-- include a one- or two-sentence explanation a student sees after answering.
+- include an explanation: one or two sentences a student sees after answering, teaching why the correct answer is right;
+- include whyWrong: exactly one sentence per wrong answer, in the same order, naming the mistake that leads to it and why it's wrong (refer to answers by what they say, never by letter).
 Always spell practice with a c in every form (practice, practiced, practicing), including as a verb.
 Never repeat or closely paraphrase an existing question you are shown. Spread the new questions across different skills.`;
 
@@ -71,7 +73,7 @@ Write ${count} new questions.`;
           key: `draft-${crypto.randomUUID()}`, subject, grade,
           strand: q.strand.slice(0, 80), skill: q.skill.slice(0, 80), prompt: q.prompt.slice(0, 600),
           correct: choices[0], wrong1: choices[1], wrong2: choices[2], wrong3: choices[3],
-          explanation: q.explanation.slice(0, 1000), active: false, reviewed: false, source: "ai-draft",
+          explanation: q.explanation.slice(0, 1000), whyWrong: q.whyWrong.length >= 3 ? q.whyWrong.slice(0, 3).map(w => w.slice(0, 500)) : [], active: false, reviewed: false, source: "ai-draft",
         },
       });
       created++;

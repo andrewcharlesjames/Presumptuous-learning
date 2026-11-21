@@ -14,6 +14,8 @@ export type BankItem = {
   prompt: string;
   choices: [string, string, string, string];
   explanation: string;
+  /** why each wrong choice is wrong, matching choices[1..3] */
+  whyWrong?: string[];
 };
 
 /**

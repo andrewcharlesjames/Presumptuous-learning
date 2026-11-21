@@ -260,6 +260,7 @@ model Question {
   wrong2      String
   wrong3      String
   explanation String   @default("")
+  whyWrong    String[] @default([]) // why each wrong answer is wrong, in the order wrong1, wrong2, wrong3
   active      Boolean  @default(true)
   reviewed    Boolean  @default(false) // checked by a certified teacher
   source      String   @default("builtin")

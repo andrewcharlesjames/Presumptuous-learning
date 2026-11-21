@@ -50,10 +50,7 @@ export function Practice({ id, items, start, tutor }: { id: string; items: Item[
           </button>
         </div>
         {fb && (
-          <div className={`flash ${fb.ok ? "ok" : "error"}`} role="status">
-            <span>{fb.ok ? "Correct." : `Not quite. The answer is ${fb.correctText}.`}</span>
-            {fb.explanation && <span style={{ fontWeight: 400 }}>{fb.explanation}</span>}
-          </div>
+          <Teach fb={fb} />
         )}
         {fb && !fb.ok && tutor && (
           tutorText
@@ -69,5 +66,25 @@ export function Practice({ id, items, start, tutor }: { id: string; items: Item[
         </div>
       </div>
     </section>
+  );
+}
+
+/** Feedback that teaches either way: why the right answer is right, and why a wrong choice is wrong. */
+export function Teach({ fb }: { fb: Pick<Feedback, "ok" | "correctText" | "chosenText" | "explanation" | "whyWrong"> }) {
+  return (
+    <div className={`flash ${fb.ok ? "ok" : "error"} teach`} role="status">
+      {fb.ok ? (
+        <>
+          <span>Yes, that&apos;s right!</span>
+          <span style={{ fontWeight: 400 }}>{fb.explanation ? <><b>Why:</b> {fb.explanation}</> : <>“{fb.correctText}” is the answer.</>}</span>
+        </>
+      ) : (
+        <>
+          <span>{fb.chosenText ? <>Not quite. You chose “{fb.chosenText}”.</> : <>That&apos;s OK. Here&apos;s how to think about it.</>}</span>
+          {fb.chosenText && fb.whyWrong && <span style={{ fontWeight: 400 }}><b>Why that&apos;s not it:</b> {fb.whyWrong}</span>}
+          <span style={{ fontWeight: 400 }}><b>The answer is “{fb.correctText}”.</b>{fb.explanation ? <> {fb.explanation}</> : null}</span>
+        </>
+      )}
+    </div>
   );
 }

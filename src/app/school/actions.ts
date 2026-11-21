@@ -229,22 +229,22 @@ export async function saveSchedule(form: FormData) {
   })).filter(r => r.title);
   for (const r of rows) {
     if (!TIME.test(r.start) || !TIME.test(r.end) || r.end <= r.start || !KINDS.includes(r.kind)) {
-      return back("/school/schedule", "error", `Check "${r.title}": it needs a start time before its end time.`);
+      return back("/school/schedule?edit=1", "error", `Check "${r.title}": it needs a start time before its end time.`);
     }
   }
-  if (rows.some(r => !r.days.length)) return back("/school/schedule", "error", "Every block needs at least one day.");
+  if (rows.some(r => !r.days.length)) return back("/school/schedule?edit=1", "error", "Every block needs at least one day.");
   rows.sort((a, b) => a.start.localeCompare(b.start));
   for (let d = 0; d < 5; d++) {
     const today = rows.filter(r => r.days.includes(d));
     for (let i = 1; i < today.length; i++) {
-      if (today[i].start < today[i - 1].end) return back("/school/schedule", "error", `"${today[i].title}" overlaps "${today[i - 1].title}" on ${["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"][d]}.`);
+      if (today[i].start < today[i - 1].end) return back("/school/schedule?edit=1", "error", `"${today[i].title}" overlaps "${today[i - 1].title}" on ${["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"][d]}.`);
     }
   }
   await db.$transaction([
     db.scheduleBlock.deleteMany({ where: { schoolId: school.id } }),
     db.scheduleBlock.createMany({ data: rows.map((r, position) => ({ ...r, position, schoolId: school.id })) }),
   ]);
-  return back("/school/schedule", "ok", "School day saved. Students see it on their Today screen.");
+  return back("/school/schedule", "ok", "School day saved and locked. Students see it on their Today screen.");
 }
 
 export async function resetSchedule() {
