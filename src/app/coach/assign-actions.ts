@@ -60,6 +60,23 @@ export async function deleteAssignment(form: FormData) {
   redirect(returnTo);
 }
 
+/** Take one student off an assignment; the assignment is deleted when nobody is left on it. */
+export async function unassignStudent(form: FormData) {
+  const { user, school } = await staff();
+  const returnTo = safeReturn(form.get("returnTo"));
+  const id = String(form.get("id") ?? ""), studentId = String(form.get("studentId") ?? "");
+  const a = await db.assignment.findFirst({ where: { id, schoolId: school.id }, include: { targets: true } });
+  if (a && (a.createdById === user.id || user.role === "SCHOOL_ADMIN") && a.targets.some(t => t.studentId === studentId)) {
+    if (a.targets.length === 1) await db.assignment.delete({ where: { id } });
+    else await db.assignmentTarget.delete({ where: { assignmentId_studentId: { assignmentId: id, studentId } } });
+    await setFlash({ tone: "ok", text: a.targets.length === 1 ? "Assignment removed." : "Removed for this student. Everyone else still has it." });
+  } else {
+    await setFlash({ tone: "error", text: "Only the person who set it, or a school admin, can remove it." });
+  }
+  revalidatePath(returnTo);
+  redirect(returnTo);
+}
+
 export async function addNote(form: FormData) {
   const { user } = await staff();
   const studentId = String(form.get("studentId") ?? "");

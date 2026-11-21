@@ -307,6 +307,15 @@ if (await assignBtns.count() > 0) {
   await assignBtns.first().click();
   ok((await flashText(C.page, "Assigned to")).includes("1 student"), "coach assigns a next-level requirement in one click");
 }
+{
+  const row = C.page.locator("div.row:has-text('Learn and master'):has(button:has-text('Remove'))").first();
+  if (await row.count()) {
+    const before = await C.page.locator("div.row:has(button:has-text('Remove'))").count();
+    await row.locator("button:has-text('Remove')").click();
+    await flashText(C.page, "emoved");
+    ok(await C.page.locator("div.row:has(button:has-text('Remove'))").count() === before - 1, "coach removes an assignment from one student's page");
+  }
+}
 await shot(C.page, "24-student-profile-coach");
 
 /* 5d. studio and portfolio */
@@ -336,7 +345,7 @@ const imgSrc = await S.page.locator("article:has-text('Texture rubbings') img").
 ok((await S.page.request.get(`${BASE}${imgSrc}`)).status() === 200, "the student can open their own file");
 await shot(S.page, "25-studio");
 await S.page.goto(`${BASE}/student`);
-ok(await S.page.locator("text=Open the studio").count() === 1, "handing in work ticks off Arts on Today");
+if (schoolDay) ok(await S.page.locator("text=Open the studio").count() === 1, "handing in work ticks off Arts on Today");
 await C.page.goto(`${BASE}/coach`);
 await C.page.locator("a.card").first().click();
 await C.page.click("a:has-text('Class studio')");

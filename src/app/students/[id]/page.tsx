@@ -21,7 +21,7 @@ import { SUBJECT_BY_ID, isSubjectId, plural, subjectsForGrade } from "@/lib/subj
 import { practiceSummary } from "@/lib/practice";
 import { learnHref } from "@/lib/links";
 import { completion, describe, skillMenu } from "@/lib/assignments";
-import { addNote, createAssignment, deleteNote } from "@/app/coach/assign-actions";
+import { addNote, createAssignment, deleteNote, unassignStudent } from "@/app/coach/assign-actions";
 import { AssignForm } from "@/components/AssignForm";
 import { dayStatuses, streaks, weekRange } from "@/lib/schoolday";
 import { effortLabel, moodLabel } from "@/lib/prompts";
@@ -198,6 +198,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
                   {a.dueDate && <span className="small muted">due {fmtDate(a.dueDate, { weekday: "short", month: "short", day: "numeric" })}</span>}
                   {a.note && <span className="small muted">“{a.note}”</span>}
                   <span className="small muted">from {a.createdBy.firstName}</span>
+                  {staff && !doneAt && <form action={unassignStudent}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="studentId" value={student.id} /><input type="hidden" name="returnTo" value={`/students/${student.id}`} /><button className="btn small">Remove</button></form>}
                 </div>
               );
             })}</div>
