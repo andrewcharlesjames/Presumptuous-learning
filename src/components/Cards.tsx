@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { learnHref } from "@/lib/links";
 import { startPractice } from "@/app/student/practice/actions";
-import { startAssessment } from "@/app/student/actions";
+import { startAssessment, startCheckup } from "@/app/student/actions";
 import { dayName, type Todo } from "@/lib/week";
 import { fmtDate } from "@/lib/dates";
 
-const TONE: Record<Todo["kind"], string> = { learn: "learn", ent: "ent", assignment: "assign", step: "step", "start-project": "step" };
+const TONE: Record<Todo["kind"], string> = { learn: "learn", ent: "ent", assignment: "assign", step: "step", "start-project": "step", checkup: "checkup" };
 
 /** The button that does the task: a lesson, a practice set, an assessment, or the project page. */
 export function TodoAction({ t, big = false, readOnly = false }: { t: Todo; big?: boolean; readOnly?: boolean }) {
   if (readOnly || t.done) return null;
   const cls = `btn ${big ? "" : "small "}primary`;
+  if (t.kind === "checkup") return t.inProgress
+    ? <Link className={cls} href="/student/assessment">Continue the check-up</Link>
+    : <form action={startCheckup}><button className={cls}>Start the check-up</button></form>;
   if (t.kind === "step" || t.kind === "start-project") {
     const label = t.kind === "start-project" ? "Start it" : t.status === "NEEDS_WORK" ? "Fix and resend" : "Open this step";
     return <Link className={cls} href={t.href!}>{label}</Link>;

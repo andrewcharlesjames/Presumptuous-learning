@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { UNITS, applyText, bandOf, findEntSkill, nextSkill, skillsBetween, skillsOf, skillsSoFar, unitFor } from "../src/lib/presumptuous.ts";
 import { draftEntComment, entLevel } from "../src/lib/report-rules.ts";
 import { DEFAULT_DAY } from "../src/lib/templates.ts";
+import { nextStagePool, workingLevel } from "../src/lib/assessment.ts";
 import { minutes, utcDate } from "../src/lib/dates.ts";
 
 test("ten units, September to June, each with two business skills and one life skill for every grade band", () => {
@@ -47,4 +48,28 @@ test("default week: 10 h academics, 8 h Presumptuous Project, 7 h arts, no overl
     for (let i = 1; i < day.length; i++) assert.ok(day[i].start >= day[i - 1].end, `day ${d}: ${day[i].title}`);
     assert.equal(day[0].start, "09:00"); assert.equal(day.at(-1)!.end, "16:00");
   }
+});
+
+import { pickCheckupDay } from "../src/lib/checkup-day.ts";
+test("monthly check-up is the last school Friday, or the last school day", () => {
+  assert.equal(pickCheckupDay(["2026-11-02", "2026-11-20", "2026-11-27", "2026-11-30"]), "2026-11-27");
+  assert.equal(pickCheckupDay(["2026-12-14", "2026-12-17", "2026-12-18"]), "2026-12-18");
+  assert.equal(pickCheckupDay(["2027-03-29", "2027-03-30"]), "2027-03-30"); // no Friday at school
+  assert.equal(pickCheckupDay([]), null);
+});
+
+test("a check-up starts each subject where the student left off", () => {
+  // started at Grade 9 (last month's level), passed Grade 9 and 10, missed 11: now working at Grade 10
+  const st = (p: number, right: number) => [0, 1, 2].map(i => ({ p, ok: i < right }));
+  assert.equal(workingLevel(9, [...st(9, 3), ...st(10, 2), ...st(11, 1)]), 10);
+  assert.equal(nextStagePool(9, [], () => true), 9);
+});
+
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+test("practice is always spelled with a c", () => {
+  const bad: string[] = [];
+  const walk = (dir: string) => { for (const f of readdirSync(dir)) { const p = join(dir, f); if (statSync(p).isDirectory()) walk(p); else if (/\.(tsx?|mjs)$/.test(f) && /practis/i.test(readFileSync(p, "utf8"))) bad.push(p); } };
+  walk("src");
+  assert.deepEqual(bad, []);
 });

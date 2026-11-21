@@ -49,7 +49,7 @@ export const UNITS: Unit[] = [
     links: ["Language: media literacy and persuasive writing"],
     business: [["Signs and posters", "Telling people about your idea"], ["Advertising", "Making a sale"], ["Marketing channels and branding", "Sales and customer service"], ["The marketing mix (4 Ps)", "Sales funnels and digital marketing"]],
     life: ["Being honest", "Honesty and fairness in business", "Digital citizenship and online safety", "Ethics and consumer protection"] },
-  { month: 3, title: "Pitch it", step: "pitch", apply: "Write a 2-minute pitch for {project}: the problem, your solution, your customer and your ask. Practise it out loud.",
+  { month: 3, title: "Pitch it", step: "pitch", apply: "Write a 2-minute pitch for {project}: the problem, your solution, your customer and your ask. Practice it out loud.",
     links: ["Language: oral communication (presenting)", "Language: persuasive writing"],
     business: [["Show and tell your idea", "Speaking in front of others"], ["Telling your business story", "Making a 2-minute pitch"], ["Structure of a pitch", "Persuasive presentations"], ["Investor pitch structure", "Answering tough questions"]],
     life: ["Being brave", "Confidence speaking in public", "Public speaking", "Interview skills"] },

@@ -33,7 +33,7 @@ export async function hasPoolFn() {
  * Adds the next stage of questions to an adaptive assessment if every question so far is answered.
  * Returns true when the assessment has no more questions to ask.
  */
-export async function advance(a: Pick<Assessment, "id" | "grade" | "subjects" | "questions" | "answers">): Promise<{ done: boolean; questions: StoredQuestion[]; answers: Answer[] }> {
+export async function advance(a: Pick<Assessment, "id" | "grade" | "subjects" | "questions" | "answers" | "startAt">): Promise<{ done: boolean; questions: StoredQuestion[]; answers: Answer[] }> {
   const questions = (a.questions as StoredQuestion[]).slice();
   const answers = (a.answers as Answer[]).slice();
   if (answers.some(x => x === null)) return { done: false, questions, answers };
@@ -44,7 +44,9 @@ export async function advance(a: Pick<Assessment, "id" | "grade" | "subjects" | 
   for (; si < subjects.length; si++) {
     const sid = subjects[si];
     const answered = questions.map((q, k) => ({ q, k })).filter(x => x.q.sid === sid).map(x => ({ p: x.q.p, ok: answers[x.k] === 0 }));
-    const next = nextStagePool(a.grade, answered, has(sid));
+    const wanted = (a.startAt as Partial<Record<SubjectId, number>> | null)?.[sid];
+    const start = wanted !== undefined && has(sid)(wanted) ? wanted : a.grade;
+    const next = nextStagePool(start, answered, has(sid));
     if (next === null) continue;
     const items = await pickItems(sid, next, STAGE_SIZE, used);
     if (!items.length) continue;

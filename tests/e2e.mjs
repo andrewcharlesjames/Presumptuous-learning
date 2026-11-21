@@ -848,9 +848,28 @@ await shot(pp, "15-phone-dark-student");
   const [dpEmail, dpPw] = demo["Parent"].split(" / ");
   await adultLogin(DP.page, dpEmail, dpPw);
   ok(await DP.page.locator("text=This week:").count() >= 1, "parent sees each child's week");
-  await DP.page.locator("a:has-text('Week')").first().click();
-  await DP.page.waitForURL(/\/students\/.+\/week/);
-  ok(await DP.page.locator(".weekday").count() === 5 && await DP.page.locator(".ncard .btn").count() === 0, "parent sees the child's week without action buttons");
+  await DP.page.locator("a:has-text(' sees')").first().click();
+  await DP.page.waitForURL(/\/students\/.+\/view/);
+  ok(await DP.page.locator(".studentview-bar").count() === 1 && await DP.page.locator(".hero-card").count() === 1, "parent opens What their child sees");
+  ok(await DP.page.locator(".ncard button, .hero-card button, .ncard a.btn:not([href*='/view']), .hero-card a.btn:not([href*='/view'])").count() === 0, "the student view has no working buttons");
+  await DP.page.click("a.tab:has-text('My week')");
+  await DP.page.waitForURL(/tab=week/);
+  ok(await DP.page.locator(".weekday").count() === 5, "the student view shows the child's week");
+  await DP.page.click("a.tab:has-text('Month')");
+  await DP.page.waitForURL(/tab=week&view=month/);
+  ok(await DP.page.locator(".monthgrid").count() === 1, "the month opens inside the student view");
+  // coach: Student view from a student's page
+  await DC.page.goto(`${BASE}/coach`);
+  await DC.page.locator(".card:has-text('Junior Studio A') a, a:has-text('Junior Studio A')").first().click(); await DC.page.waitForLoadState("networkidle");
+  const amiraHref = await DC.page.locator("table a:has-text('Amira')").first().getAttribute("href").catch(() => null);
+  ok(!!amiraHref, "coach finds the student in their class");
+  if (amiraHref) {
+    await DC.page.goto(`${BASE}${amiraHref}`);
+    await DC.page.click("a:has-text('Student view')");
+    await DC.page.waitForURL(/\/view$/);
+    ok(await DC.page.locator("h1:has-text('Hi Amira')").count() === 1, "coach sees exactly what the student sees");
+    await shot(DC.page, "63-student-view");
+  }
   await DC.page.goto(`${BASE}/coach`);
   await DC.page.click(".card >> nth=1"); await DC.page.waitForLoadState("networkidle");
   ok(await DC.page.locator("th:has-text('This week')").count() === 1, "coach sees each student's week");

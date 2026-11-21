@@ -46,7 +46,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
   const today = todayIn(school.timezone);
   const [scored, history, attendance, reports, practice, recentSets, skills] = await Promise.all([
     latestScored(id),
-    db.assessment.findMany({ where: { studentId: id, status: "COMPLETE" }, orderBy: { completedAt: "desc" }, select: { id: true, completedAt: true, grade: true, results: true } }),
+    db.assessment.findMany({ where: { studentId: id, status: "COMPLETE" }, orderBy: { completedAt: "desc" }, select: { id: true, completedAt: true, grade: true, results: true, kind: true } }),
     db.attendance.findMany({ where: { studentId: id, date: { gte: addDays(today, -30) } } }),
     db.calendarEvent.findMany({ where: { schoolId: school.id, kind: "REPORT" } }),
     practiceSummary([id], 7).then(m => m.get(id)),
@@ -111,6 +111,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
           {scored && <p className="muted small" style={{ marginTop: 6 }}>Last assessed {fmtStamp(scored.assessment.completedAt!, school.timezone, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} in {gradeName(scored.assessment.grade)}</p>}
         </div>
         <div className="row">
+          {!self && <Link className="btn primary" href={`/students/${student.id}/view`}>Student view</Link>}
           <Link className="btn" href={`/students/${student.id}/portfolio`}>{self ? "My portfolio" : "Portfolio"}</Link>
           <Link className="btn" href={self ? "/student/projects" : `/students/${student.id}/projects`}>{self ? "My projects" : "Projects"}</Link>
           {(staff || hasReport) && <Link className="btn" href={staff ? `/students/${student.id}/report/edit` : `/students/${student.id}/report`}>{staff ? "Report card" : self ? "My report card" : "Report card"}</Link>}
@@ -317,12 +318,12 @@ export default async function StudentProfile({ params, searchParams }: { params:
           ))}
         </div>
         <div className="card">
-          <h2>Assessment history<Info label="Assessment history">{"Every placement assessment, including ones not finished yet. The plan always uses the latest finished one."}</Info></h2>
+          <h2>Assessment history<Info label="Assessment history">{"The first placement assessment and each monthly check-up (the last school Friday of each month). A check-up starts each subject where the student left off, so subjects can keep moving up. The plan always uses the latest finished one."}</Info></h2>
           {history.length ? history.map(h => {
             const r = (h.results ?? []) as StoredResult[];
             const cc = { below: 0, at: 0, above: 0 } as Record<Status, number>;
             r.forEach(x => cc[x.status]++);
-            return <p key={h.id} className="small num">{fmtStamp(h.completedAt!, school.timezone, { month: "short", day: "numeric", year: "numeric" })} · {gradeName(h.grade)} · {cc.below} below · {cc.at} at · {cc.above} above</p>;
+            return <p key={h.id} className="small num">{fmtStamp(h.completedAt!, school.timezone, { month: "short", day: "numeric", year: "numeric" })} · {h.kind === "checkup" ? "Monthly check-up" : "Placement"} · {gradeName(h.grade)} · {cc.below} below · {cc.at} at · {cc.above} above</p>;
           }) : <p className="muted small">None yet.</p>}
         </div>
       </section>

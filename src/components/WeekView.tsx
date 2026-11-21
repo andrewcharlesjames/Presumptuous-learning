@@ -13,13 +13,14 @@ type Student = { id: string; firstName: string; grade: number | null; createdAt:
 
 /** A student's week (to-do cards and a day-by-day board) or month (due dates and events). */
 export async function WeekView({ student, school, base, self, view, month }: { student: Student; school: School; base: string; self: boolean; view: "week" | "month"; month?: string }) {
+  const q = base.includes("?") ? "&" : "?"; // base may already carry a query (the student view's tab)
   const tabs = (
     <nav className="tabs" aria-label="View">
       <Link className="tab" href={base} aria-current={view === "week" ? "page" : undefined}>Week</Link>
-      <Link className="tab" href={`${base}?view=month`} aria-current={view === "month" ? "page" : undefined}>Month</Link>
+      <Link className="tab" href={`${base}${q}view=month`} aria-current={view === "month" ? "page" : undefined}>Month</Link>
     </nav>
   );
-  return view === "month" ? <MonthView student={student} school={school} base={base} tabs={tabs} month={month} self={self} /> : <WeekBoardView student={student} school={school} tabs={tabs} self={self} />;
+  return view === "month" ? <MonthView student={student} school={school} base={base} q={q} tabs={tabs} month={month} self={self} /> : <WeekBoardView student={student} school={school} tabs={tabs} self={self} />;
 }
 
 async function WeekBoardView({ student, school, tabs, self }: { student: Student; school: School; tabs: React.ReactNode; self: boolean }) {
@@ -68,7 +69,7 @@ async function WeekBoardView({ student, school, tabs, self }: { student: Student
 }
 
 function Mini({ t, self }: { t: Todo; self: boolean }) {
-  const tone = t.kind === "ent" ? "ent" : t.kind === "assignment" ? "assign" : t.kind === "step" ? "step" : "";
+  const tone = t.kind === "ent" ? "ent" : t.kind === "assignment" ? "assign" : t.kind === "step" ? "step" : t.kind === "checkup" ? "checkup" : "";
   return (
     <div className={`mini ${tone} ${t.done ? "done" : t.late ? "late" : ""}`}>
       <span className="small muted">{t.eyebrow}</span>
@@ -78,7 +79,7 @@ function Mini({ t, self }: { t: Todo; self: boolean }) {
   );
 }
 
-async function MonthView({ student, school, base, tabs, month, self }: { student: Student; school: School; base: string; tabs: React.ReactNode; month?: string; self: boolean }) {
+async function MonthView({ student, school, base, q, tabs, month, self }: { student: Student; school: School; base: string; q: string; tabs: React.ReactNode; month?: string; self: boolean }) {
   const today = todayIn(school.timezone);
   const m = /^(\d{4})-(\d{2})$/.exec(month ?? "");
   const y = m ? Number(m[1]) : today.getUTCFullYear(), mo = m ? Number(m[2]) - 1 : today.getUTCMonth();
@@ -101,9 +102,9 @@ async function MonthView({ student, school, base, tabs, month, self }: { student
           <h1>{MONTHS[mo]} {y}<Info label="Month">{"Due dates and school events for the month: coach assignments, project steps, Launch Day, holidays and PA days. Daily lessons are on the Week tab, so the month stays easy to read. Grey days have no school."}</Info></h1></div>
         {tabs}
       </div>
-      <div className="row"><Link className="btn small" href={`${base}?view=month&m=${prev}`}>← {MONTHS[(mo + 11) % 12]}</Link>
-        <Link className="btn small" href={`${base}?view=month`}>This month</Link>
-        <Link className="btn small" href={`${base}?view=month&m=${next}`}>{MONTHS[(mo + 1) % 12]} →</Link></div>
+      <div className="row"><Link className="btn small" href={`${base}${q}view=month&m=${prev}`}>← {MONTHS[(mo + 11) % 12]}</Link>
+        <Link className="btn small" href={`${base}${q}view=month`}>This month</Link>
+        <Link className="btn small" href={`${base}${q}view=month&m=${next}`}>{MONTHS[(mo + 1) % 12]} →</Link></div>
       <div className="monthgrid" aria-label={`${MONTHS[mo]} ${y}`} role="group">
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => <div key={d} className="dow" aria-hidden="true">{d}</div>)}
         {cells.map(d => {

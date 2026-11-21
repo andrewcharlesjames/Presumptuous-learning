@@ -30,7 +30,7 @@ export async function latestScored(studentId: string) {
   if (!a) return null;
   const questions = a.questions as StoredQuestion[];
   const lookup = await lookupFor(questions);
-  const results = scoreAssessment(a.grade, a.subjects as SubjectId[], questions, a.answers as Answer[], lookup, a.mode === "adaptive" ? "adaptive" : "fixed");
+  const results = scoreAssessment(a.grade, a.subjects as SubjectId[], questions, a.answers as Answer[], lookup, a.mode === "adaptive" ? "adaptive" : "fixed", (a.startAt ?? {}) as Partial<Record<SubjectId, number>>);
   const skillsAt = await skillIndex(a.subjects as SubjectId[]);
   return { assessment: a, results, skillsAt };
 }

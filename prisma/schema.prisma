@@ -234,6 +234,8 @@ model Assessment {
   subjects    String[]
   status      AssessmentStatus @default(IN_PROGRESS)
   mode        String           @default("fixed") // "fixed" (Phase 1) or "adaptive"
+  kind        String           @default("placement") // "placement" or "checkup" (the monthly check-up)
+  startAt     Json? // { [subject]: grade to start at }: a check-up starts at each subject's last working level
   questions   Json // [{sid, tier, p, i, order}]
   answers     Json // (number | null)[]  original option index, -1 = not sure
   results     Json? // per-subject placement, written on completion

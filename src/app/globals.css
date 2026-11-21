@@ -278,3 +278,7 @@ a.tab { text-decoration: none; display: inline-block; }
 @media (max-width: 760px) { .weekgrid { grid-template-columns: 1fr; } .monthgrid .cell { min-height: 64px; font-size: .68rem; } .monthgrid .tag { padding: 1px 3px; } }
 .itemlist .why { display: block; color: var(--ink); margin-top: 2px; }
 .teach b { font-weight: 700; }
+.ncard.checkup::before { background: var(--accent-text); } .weekday .mini.checkup { border-left-color: var(--accent-text); }
+.studentview-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: var(--ink); color: var(--paper); }
+.studentview-bar .btn { background: var(--paper); color: var(--ink); }
+.studentview-bar .info-btn { border-color: var(--accent); color: var(--accent); }

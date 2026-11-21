@@ -21,6 +21,8 @@ export default async function AssessmentPage() {
   if (!view) redirect("/student");
   return (
     <Shell user={user}>
+      {a.kind === "checkup" && <div><span className="eyebrow">Monthly check-up</span><h1 style={{ fontSize: "clamp(1.5rem,3.5vw,2.1rem)" }}>See how far you&apos;ve come</h1>
+        <p className="muted small" style={{ marginTop: 6 }}>Each subject starts where you left off last time. Answers save as you go.</p></div>}
       <Quiz id={a.id} studentId={user.id} initial={view} readAloud={a.grade <= 2} />
     </Shell>
   );

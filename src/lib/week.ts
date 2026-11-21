@@ -9,6 +9,7 @@ import { ENT, nextSkill } from "./presumptuous";
 import { completion, describe } from "./assignments";
 import { PROJECT_LABEL } from "./projects";
 import { SUBJECT_BY_ID, isSubjectId } from "./subjects";
+import { checkupInWeek } from "./checkup";
 
 /** One learning task in a student's week. Check-ins and reflections stay daily habits and are not tasks. */
 export type WeekTask = { id: string; day: string; kind: "learn" | "ent"; subject: string; grade: number; skill: string; label: string };
@@ -16,7 +17,7 @@ export type WeekTask = { id: string; day: string; kind: "learn" | "ent"; subject
 /** Something a student needs to do, ready to show as a card. */
 export type Todo = {
   id: string;
-  kind: "learn" | "ent" | "assignment" | "step" | "start-project";
+  kind: "learn" | "ent" | "assignment" | "step" | "start-project" | "checkup";
   eyebrow: string; // e.g. "Mathematics · Stretch"
   title: string;
   day: string | null; // ISO date it belongs to, or null for "this week"
@@ -27,6 +28,7 @@ export type Todo = {
   note?: string;
   href?: string; // steps and projects
   status?: "TODO" | "SUBMITTED" | "NEEDS_WORK"; // steps
+  inProgress?: boolean; // check-up already started
 };
 
 type Student = { id: string; firstName: string; grade: number | null; createdAt: Date };
@@ -124,6 +126,16 @@ export async function weekBoard(student: Student, school: SchoolLite, today: Dat
       id: `a:${a.id}`, kind: "assignment", eyebrow: `From ${a.createdBy.firstName}`, title: describe(a), day: due && due >= isoDate(monday) ? due : null,
       done: !!doneAt, late: !doneAt && !!due && due < todayIso, subject: a.subject, grade: a.grade, skill: a.skill, assignmentKind: a.kind, note: a.note || undefined,
     });
+  }
+
+  // the monthly check-up, on the last school Friday of the month, once the first assessment is done
+  const checkup = tasks.length || (await db.assessment.count({ where: { studentId: student.id, status: "COMPLETE" } })) ? await checkupInWeek(school, monday) : null;
+  if (checkup) {
+    const [doneA, going] = await Promise.all([
+      db.assessment.findFirst({ where: { studentId: student.id, status: "COMPLETE", completedAt: { gte: from } }, select: { id: true } }),
+      db.assessment.findFirst({ where: { studentId: student.id, status: "IN_PROGRESS", kind: "checkup" }, select: { id: true } }),
+    ]);
+    todos.push({ id: `checkup:${checkup}`, kind: "checkup", eyebrow: "Monthly check-up", title: "See how far you've come", day: checkup, done: !!doneA, late: !doneA && checkup < todayIso, inProgress: !!going });
   }
 
   // projects: the next step on each, flagged when it's late; a nudge to start any that haven't begun

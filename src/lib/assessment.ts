@@ -165,6 +165,7 @@ function scoreFixed(items: ScoredItem[]): { level: 1 | 2 | 3 | 4 } {
 export function scoreAssessment(
   grade: number, subjects: SubjectId[], questions: StoredQuestion[], answers: Answer[],
   lookup: Lookup = builtinLookup, mode: "fixed" | "adaptive" = "fixed",
+  starts: Partial<Record<SubjectId, number>> = {},
 ): SubjectResult[] {
   const all: ScoredItem[] = [];
   questions.forEach((q, k) => {
@@ -177,7 +178,9 @@ export function scoreAssessment(
     const items = all.filter(x => x.sid === sid);
     let level: 1 | 2 | 3 | 4, working: number;
     if (mode === "adaptive") {
-      working = workingLevel(grade, items.map(x => ({ p: x.p, ok: x.ok })));
+      // stages are counted from where this subject started (a check-up starts at the last working level); the level is always against the student's grade
+      const start = starts[sid] ?? (items.length ? items[0].p : grade);
+      working = workingLevel(start, items.map(x => ({ p: x.p, ok: x.ok })));
       level = levelFor(working, grade);
     } else {
       level = scoreFixed(items).level;

@@ -69,7 +69,7 @@ export default async function ParentHome() {
                 <div className="row" style={{ gap: 6 }}>
                   <Link className="btn small" href={`/students/${k.id}/portfolio`}>Portfolio ({artCounts.get(k.id) ?? 0})</Link>
                   {releasedReports.has(k.id) && <Link className="btn small" href={`/students/${k.id}/report`}>Report card</Link>}
-                  <Link className="btn small" href={`/students/${k.id}/week`}>Week</Link>
+                  <Link className="btn small" href={`/students/${k.id}/view`}>What {k.firstName} sees</Link>
                   <Link className="btn small primary" href={`/students/${k.id}`}>See plan</Link>
                 </div>
               </div>
