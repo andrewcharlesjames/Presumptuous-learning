@@ -7,6 +7,7 @@ import { appUrl, sendEmail, type Email } from "./email";
 import { newToken } from "./passwords";
 import { SUBJECT_BY_ID, isSubjectId } from "./subjects";
 import { PROJECT_LABEL } from "./projects";
+import { weekBoard } from "./week";
 
 const SEND_DAY = 5; // Friday
 const SEND_FROM = "16:00"; // local school time
@@ -18,7 +19,7 @@ type ChildWeek = {
 };
 
 /** One child's week, Monday to today, in the school's time zone. */
-async function childWeek(student: { id: string; firstName: string; grade: number | null }, school: { id: string; timezone: string; yearStart: Date; yearEnd: Date }, today: Date): Promise<ChildWeek> {
+async function childWeek(student: { id: string; firstName: string; grade: number | null; createdAt: Date }, school: { id: string; timezone: string; yearStart: Date; yearEnd: Date }, today: Date): Promise<ChildWeek> {
   const monday = mondayOf(today);
   const from = dayBounds(monday, school.timezone).start, to = dayBounds(today, school.timezone).end;
   const [statuses, streak, mastered, practice, steps, notes, assignments] = await Promise.all([
@@ -31,6 +32,7 @@ async function childWeek(student: { id: string; firstName: string; grade: number
     db.assignment.findMany({ where: { targets: { some: { studentId: student.id } } }, include: { targets: { where: { studentId: student.id } } }, orderBy: { createdAt: "desc" }, take: 30 }),
   ]);
   const done = await completion(assignments);
+  const board = await weekBoard(student, school, today);
   const days = (statuses.get(student.id) ?? []).filter(d => d.schoolDay);
   const q = practice.reduce((a, p) => a + p.total, 0), c = practice.reduce((a, p) => a + p.correct, 0);
   const subj = (s: string) => (isSubjectId(s) ? SUBJECT_BY_ID[s].name(student.grade ?? 0) : s);
@@ -39,7 +41,11 @@ async function childWeek(student: { id: string; firstName: string; grade: number
     mastered: mastered.map(m => `${m.skill} (${subj(m.subject)})`),
     practiceSets: practice.length, practicePct: q ? Math.round((c / q) * 100) : null,
     steps: steps.map(s => `${PROJECT_LABEL[s.project.type]}: ${s.title}`),
-    open: assignments.filter(a => !done.has(`${a.id}:${student.id}`)).map(a => `${describe(a)}${a.dueDate ? `, due ${fmtDate(a.dueDate)}` : ""}`),
+    open: [
+      ...board.behind.map(b => b.kind === "start-project" ? `${b.eyebrow}: not started yet` : `${b.eyebrow}: ${b.title} (${b.status === "NEEDS_WORK" ? "coach asked for changes" : "late"})`),
+      ...board.catchUp.filter(t => t.kind !== "step" && t.kind !== "start-project").map(t => `${t.title} (${t.eyebrow.split(" · ")[0]})`),
+      ...assignments.filter(a => !done.has(`${a.id}:${student.id}`) && !(a.dueDate && a.dueDate < today)).map(a => `${describe(a)}${a.dueDate ? `, due ${fmtDate(a.dueDate)}` : ""}`),
+    ],
     notes: notes.map(n => `${n.body} (${n.author.firstName} ${n.author.lastName})`),
     planUrl: `${appUrl()}/students/${student.id}`,
   };
@@ -56,7 +62,7 @@ function childHtml(k: ChildWeek): string {
 ${stat(`${k.complete}/${k.schoolDays}`, "full days")}${stat(`${k.streak}`, "day streak")}${stat(`${k.mastered.length}`, "skills mastered")}${stat(`${k.practiceSets}`, "practice sets")}
 </tr></table>
 ${k.practicePct !== null ? `<p style="margin:4px 0;font-size:14px">Practice accuracy this week: <b>${k.practicePct}%</b>.</p>` : ""}
-${list("Mastered this week", k.mastered)}${list("Project steps approved", k.steps)}${list("Still to do", k.open)}${list("From their coach", k.notes)}
+${list("Mastered this week", k.mastered)}${list("Project steps approved", k.steps)}${list("Still to do this week (it can be done over the weekend)", k.open)}${list("From their coach", k.notes)}
 <p style="margin:10px 0 0"><a href="${esc(k.planUrl)}" style="color:#8A5800;font-weight:700">See ${esc(k.name)}'s full plan</a></p></div>`;
 }
 

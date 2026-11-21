@@ -74,6 +74,13 @@ src/lib/templates.ts      default school day and Ontario calendar template
 src/app/                  pages by role: admin/, school/, coach/, parent/, student/, students/[id]
 ```
 
+## Student home, My week and Month
+
+- **Today** opens with one big **Up next** card (check in → a late project step or a project not started → catch-up from earlier this week → today's next lesson → reflect → all done), then bold cards for projects that need attention, catch-up (first 4), today's work and coming-up assignments.
+- **My week** (`/student/week`): "Still to do this week" cards, then Monday–Friday day by day. Each week's list is saved (`WeekPlan`) first thing Monday by the server's timer, so it only shrinks as work is done; a list made mid-week starts from that day. Work counts as done when the skill is mastered or a lesson check or practice set on it is finished that week, on any day, including weekends. Check-ins and reflections stay daily habits.
+- **Month**: due dates and events (assignments, project steps, Launch Day, holidays).
+- Parents see each child's week (`/students/[id]/week`, read-only); coaches see a This week column; the Friday email lists what's still to do.
+
 ## Running the platform
 
 - **People** (platform admin): everyone on the platform, searchable by name, email or username and filterable by school, role and status. Email an adult a one-time reset link (the link is shown to you if email isn't set up), set a temporary password (students), or deactivate/reactivate. School admins can also email reset links from their own People page.

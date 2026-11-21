@@ -1,5 +1,6 @@
 import { Info } from "@/components/Info";
 import Link from "next/link";
+import { weekBoard } from "@/lib/week";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/Shell";
@@ -26,6 +27,7 @@ export default async function ParentHome() {
   const links = await db.parentLink.findMany({ where: { parentId: user.id }, include: { student: true }, orderBy: { createdAt: "asc" } });
   const kids = links.map(l => l.student);
   const ids = kids.map(k => k.id);
+  const boards = new Map(await Promise.all(kids.map(async k => [k.id, await weekBoard(k, school)] as const)));
   const releasedReports = new Set((await db.reportCard.findMany({ where: { studentId: { in: ids }, status: "FINAL" }, select: { studentId: true } })).map(r => r.studentId));
   const info = await dayInfo(school);
   const [latest, att, inProgress, practice] = await Promise.all([
@@ -67,9 +69,15 @@ export default async function ParentHome() {
                 <div className="row" style={{ gap: 6 }}>
                   <Link className="btn small" href={`/students/${k.id}/portfolio`}>Portfolio ({artCounts.get(k.id) ?? 0})</Link>
                   {releasedReports.has(k.id) && <Link className="btn small" href={`/students/${k.id}/report`}>Report card</Link>}
+                  <Link className="btn small" href={`/students/${k.id}/week`}>Week</Link>
                   <Link className="btn small primary" href={`/students/${k.id}`}>See plan</Link>
                 </div>
               </div>
+              {(() => { const b = boards.get(k.id); if (!b || !b.total) return null;
+                const late = b.catchUp.length;
+                return <p className="small"><b>This week:</b> {b.doneCount} of {b.total} done{late ? <> · <span className="pill below">{late} to catch up</span></> : <> · <span className="pill above">on track</span></>}{b.behind.some(x => x.kind === "step") ? <> · <span className="pill below">behind on a project step</span></> : null}
+                  <Info label="This week">{"Lessons, coach assignments and project steps planned for this school week. Catch up means work from an earlier day that isn't done yet: it can be done any day, including the weekend. Open Week to see each day."}</Info></p>;
+              })()}
               {l && c ? (
                 <>
                   <div className="row small"><SplitBar {...c} /><span className="num">{c.above} above · {c.at} at · {c.below} below</span></div>

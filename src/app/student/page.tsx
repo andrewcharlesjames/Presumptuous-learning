@@ -16,8 +16,9 @@ import { EntToday } from "@/components/EntToday";
 import { dayBounds, dayStatuses, streaks, weekRange } from "@/lib/schoolday";
 import { startAssessment } from "./actions";
 import { startPractice } from "./practice/actions";
-import { completion, describe } from "@/lib/assignments";
 import { PROJECT_LABEL } from "@/lib/projects";
+import { weekBoard } from "@/lib/week";
+import { StudentCards } from "@/components/StudentCards";
 
 export const metadata = { title: "Today" };
 
@@ -39,12 +40,11 @@ export default async function StudentToday() {
   ]);
   const now = clockIn(school.timezone);
   const myProjects = await db.project.findMany({ where: { studentId: user.id, schoolYear: schoolYearOf(info.date) }, include: { milestones: { orderBy: { position: "asc" } } } });
-  const myAssignments = await db.assignment.findMany({ where: { targets: { some: { studentId: user.id } } }, include: { targets: { where: { studentId: user.id } }, createdBy: true }, orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }], take: 20 });
-  const finishedA = await completion(myAssignments);
-  const openA = myAssignments.filter(a => !finishedA.has(`${a.id}:${user.id}`));
-  const recentDone = myAssignments.filter(a => { const d = finishedA.get(`${a.id}:${user.id}`); return d && d >= start; });
+  const board = scored ? await weekBoard(user, school, info.date) : null;
   const plan = scored ? buildPlan({ grade: scored.assessment.grade, results: scored.results, today: info.date, yearEnd: school.yearEnd, skillsAt: scored.skillsAt, mastered }) : null;
-  const tasks = plan?.today.blocks.filter(b => b.sid) ?? [];
+  const todayLearn = board?.today.filter(t => t.kind === "learn") ?? [];
+  // Today's saved lessons; on days with none (weekends, or a week that starts later) the live plan, so there's always something to learn
+  const tasks = todayLearn.length ? todayLearn.map(t => ({ sid: t.subject as PlanBlock["sid"], skill: t.skill, grade: t.grade, title: t.eyebrow.split(" · ")[0], mode: (plan?.today.blocks.find(b => b.sid === t.subject && b.skill === t.skill)?.mode ?? "practice") as PlanBlock["mode"], how: { before: "", skill: "", after: "" }, min: 0 } as PlanBlock)) : (plan?.today.blocks.filter(b => b.sid) ?? []);
   const habits = plan?.today.blocks.filter(b => !b.sid) ?? [];
   const didTask = (b: PlanBlock) => todaySessions.some(s => s.subject === b.sid && s.skill === b.skill) || (!!b.skill && mastered.has(`${b.sid}|${b.skill}`));
   const learningDone = todaySessions.length > 0;
@@ -138,33 +138,7 @@ export default async function StudentToday() {
 
       {assessmentCard}
 
-      {(openA.length > 0 || recentDone.length > 0) && (
-        <section className="card" style={{ borderColor: "var(--accent)" }}>
-          <div className="spread"><h2>From your {school.coachTitle.toLowerCase()}<Info label="Work from your coach">{"Things your coach asked you to do. Each one ticks itself off when you finish it: pass the mastery check, finish a practice set, or retake the assessment."}</Info></h2><span className="small muted">{openA.length} to do</span></div>
-          {openA.map(a => {
-            const overdue = a.dueDate && a.dueDate < info.date;
-            return (
-              <div key={a.id} className="card tight" style={{ background: "var(--paper)" }}>
-                <div className="spread" style={{ alignItems: "center" }}>
-                  <b>{describe(a)}</b>
-                  {a.dueDate && <span className={`pill ${overdue ? "below" : "at"}`}>{overdue ? "Overdue · " : "Due "}{fmtDate(a.dueDate, { weekday: "short", month: "short", day: "numeric" })}</span>}
-                </div>
-                {a.note && <p className="small">“{a.note}” — {a.createdBy.firstName}</p>}
-                <div className="row" style={{ gap: 8 }}>
-                  {a.kind === "ASSESSMENT" ? (
-                    <form action={startAssessment}><input type="hidden" name="fresh" value="1" /><button className="btn small primary">Start the assessment</button></form>
-                  ) : a.kind === "MASTER_SKILL" ? (
-                    <Link className="btn small primary" href={learnHref(a.subject, a.grade, a.skill)}>Learn it</Link>
-                  ) : (
-                    <form action={startPractice}><input type="hidden" name="subject" value={a.subject} /><input type="hidden" name="skill" value={a.skill} /><input type="hidden" name="grade" value={a.grade} /><button className="btn small primary">Practice now</button></form>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-          {recentDone.map(a => <p key={a.id} className="small"><span className="pill above">Done</span> {describe(a)}</p>)}
-        </section>
-      )}
+      {board && <StudentCards board={board} schoolDay={info.schoolDay} reason={info.reason} checkedIn={!!log?.checkedInAt} reflected={!!log?.reflectedAt} hasAssembly={kinds.has("ASSEMBLY")} hasReflection={kinds.has("REFLECTION")} coachTitle={school.coachTitle} />}
 
       {info.schoolDay ? (
         <section className="card">
@@ -180,7 +154,7 @@ export default async function StudentToday() {
         <div className="flash ok"><span>No school today ({info.reason}). You can still learn and practice below.</span></div>
       )}
 
-      {info.schoolDay && !kinds.has("ASSEMBLY") && <section className="card"><h2>Morning check-in<Info label="Check-in">{"Tell us how you feel and set one goal for today. Your coach sees how the class is feeling."}</Info></h2><CheckIn log={log} mindful={mindful} /></section>}
+      {info.schoolDay && !kinds.has("ASSEMBLY") && <section className="card" id="block-ASSEMBLY"><h2>Morning check-in<Info label="Check-in">{"Tell us how you feel and set one goal for today. Your coach sees how the class is feeling."}</Info></h2><CheckIn log={log} mindful={mindful} /></section>}
 
       <section className="card">
         <div className="spread"><h2>{info.schoolDay ? "Your school day" : "Your learning plan"}<Info label="Your school day">{"This follows your school's real timetable. Each block shows what to do in it. In Core Academics, \"Learn it\" opens a lesson and then a 5-question check; \"Practice now\" gives you 5 questions with answers shown right away. Labels: Stretch = work from the next grade up, Secure = practice at your grade, Repair = catch up on an earlier skill."}</Info></h2></div>
@@ -190,7 +164,7 @@ export default async function StudentToday() {
             const isNow = now >= b.start && now < b.end;
             const isNext = !isNow && now < b.start && !dayBlocks.some(x => x.start < b.start && x.start > now);
             return (
-              <div key={b.id} className={`blockrow ${isNow ? "now" : ""}`} id={isNow ? "now" : undefined}>
+              <div key={b.id} className={`blockrow ${isNow ? "now" : ""}`} id={`block-${b.kind}`}>
                 <div className="t"><b>{fmtClock(b.start)}</b>{fmtClock(b.end)}</div>
                 <div>
                   <span className="kind">{isNow ? "Now · " : isNext ? "Up next · " : ""}{BLOCK_KIND_LABEL[b.kind as BlockKindName]}</span>
@@ -205,7 +179,7 @@ export default async function StudentToday() {
       </section>
 
       {info.schoolDay && !kinds.has("ACADEMICS") && <section className="card"><h2>Learn<Info label="Learn">{"Skills from your plan. \"Learn it\" teaches the skill and then checks it with 5 questions (get 4 right to master it). \"Practice now\" is 5 questions with answers shown right away."}</Info></h2>{learnList}</section>}
-      {info.schoolDay && !kinds.has("REFLECTION") && <section className="card"><h2>End-of-day reflection<Info label="Reflection">{"One thing you learned, a question you still have, and how hard you pushed. Saving it finishes your day for your streak."}</Info></h2><Reflect log={log} /></section>}
+      {info.schoolDay && !kinds.has("REFLECTION") && <section className="card" id="block-REFLECTION"><h2>End-of-day reflection<Info label="Reflection">{"One thing you learned, a question you still have, and how hard you pushed. Saving it finishes your day for your streak."}</Info></h2><Reflect log={log} /></section>}
     </Shell>
   );
 }

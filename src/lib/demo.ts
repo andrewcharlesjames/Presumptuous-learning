@@ -2,7 +2,8 @@ import "server-only";
 import { db } from "./db";
 import { buildQuestions, scoreAssessment, toStored, type Answer } from "./assessment";
 import { subjectsForGrade } from "./subjects";
-import { addDays, schoolYearOf, todayIn } from "./dates";
+import { addDays, isoDate, mondayOf, schoolYearOf, todayIn } from "./dates";
+import { weekTasks } from "./week";
 import { skillIndex } from "./questions";
 import { defaultLaunchDay, MILESTONES, milestoneDates, type ProjectTypeName } from "./projects";
 import type { SubjectId } from "./bank";
@@ -177,6 +178,15 @@ export async function createDemoSchool(opts: { test?: { email: string; name?: st
     if (s.profile === "below") await db.coachNote.create({ data: { studentId: student.id, authorId: coach.id, shared: true, body: `${s.first} is working hard on math facts. Ten minutes of practice at home this week would help a lot.` } });
     if (s.profile === "above") await db.coachNote.create({ data: { studentId: student.id, authorId: coach.id, shared: true, body: `${s.first} is ready for the next grade's work in math. We've moved the plan up.` } });
     if (idx === 3) await db.coachNote.create({ data: { studentId: student.id, authorId: coach.id, shared: false, body: "Seemed tired this week. Checking in with family." } });
+
+    // This week's list, as if made on Monday; most earlier work done, students below grade level a little behind.
+    const stu = await db.user.findUniqueOrThrow({ where: { id: student.id }, select: { id: true, firstName: true, grade: true, createdAt: true } });
+    const { tasks } = await weekTasks(stu, school, mondayOf(today));
+    for (const [k, t] of tasks.entries()) {
+      if (t.day >= isoDate(today) || (s.profile === "below" && k % 3 === 0) || (s.profile === "mixed" && k % 5 === 0)) continue;
+      const at = new Date(`${t.day}T15:00:00Z`);
+      await db.practiceSession.create({ data: { studentId: student.id, subject: t.subject, grade: t.grade, skill: t.skill, questions: [], answers: [], correct: 4, total: 5, startedAt: at, completedAt: new Date(at.getTime() + 600000) } });
+    }
   }
 
   for (const [idx, s] of STUDENTS.entries()) {

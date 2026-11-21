@@ -173,7 +173,7 @@ await shot(S.page, "11-student-today-after");
 {
   const { PrismaClient } = await import("@prisma/client");
   const prisma = new PrismaClient();
-  const learnLinks = S.page.locator("a:has-text('Learn it')");
+  const learnLinks = S.page.locator("a[href*='/student/learn?subject=']:has-text('Learn it')");
   ok(await learnLinks.count() > 0, "Today plan has Learn it buttons");
   const hrefs = [];
   for (let i = 0; i < Math.min(2, await learnLinks.count()); i++) hrefs.push(await learnLinks.nth(i).getAttribute("href"));
@@ -283,8 +283,10 @@ ok((await flashText(C.page, "Assigned to")).includes("Assigned to 1 student"), "
 ok(await C.page.locator("h2:has-text('Assignments')").count() === 1 && await C.page.locator("text=0/1").count() > 0, "class page lists the assignment with completion");
 await shot(C.page, "23-coach-assignments");
 await S.page.goto(`${BASE}/student`);
-ok(await S.page.locator("h2:has-text('From your coach')").count() === 1 && await S.page.locator("text=Do this before Friday").count() === 1, "student sees the assignment on Today");
-await S.page.locator("section:has(h2:has-text('From your coach')) button:has-text('Practice now')").first().click();
+const assignCard = S.page.locator(".ncard:has-text('Do this before Friday'), .hero-card:has-text('Practice')").first();
+ok(await S.page.locator(".ncard:has-text('Do this before Friday')").count() >= 1, "student sees the coach's assignment as a card on Today");
+await S.page.locator(".ncard:has-text('Do this before Friday') button:has-text('Practice now')").first().click();
+void assignCard;
 await S.page.waitForURL(/\/student\/practice\//);
 for (let i = 0; i < 5; i++) {
   await S.page.locator(".opt").first().click();
@@ -295,7 +297,7 @@ for (let i = 0; i < 5; i++) {
   if (/score/i.test(label)) break;
 }
 await S.page.goto(`${BASE}/student`);
-ok(await S.page.locator("section:has(h2:has-text('From your coach')) .pill:has-text('Done')").count() >= 1, "finishing the practice marks the assignment done");
+ok(await S.page.locator(".ncard:has-text('Do this before Friday') button:has-text('Practice now')").count() === 0, "finishing the practice marks the assignment done");
 const studentLink = await C.page.locator("table a[href^='/students/']").first().getAttribute("href");
 await C.page.goto(`${BASE}${studentLink}`);
 await C.page.fill("#note-body", "Great effort this week. Keep overreaching!");
@@ -810,6 +812,38 @@ await shot(pp, "15-phone-dark-student");
   ok((await flashText(A.page, "Deleted")).includes("Maple Test Academy"), "admin deletes the test school");
 }
 
+/* 8f. Student home cards, My week, Month, catch-up */
+{
+  const DS = globalThis.DS;
+  await DS.page.goto(`${BASE}/student`);
+  ok(await DS.page.locator(".hero-card").count() === 1, "student home starts with one big Up next card");
+  ok(await DS.page.locator("a:has-text('See my whole week')").count() === 1, "home links to the whole week");
+  await shot(DS.page, "60-student-home-cards", false);
+  await DS.page.click("a:has-text('My week') >> nth=0");
+  await DS.page.waitForURL(/\/student\/week$/);
+  ok(await DS.page.locator("h1:has-text('My week')").count() === 1 && await DS.page.locator(".weekday").count() === 5, "My week shows Monday to Friday");
+  ok(await DS.page.locator("h2:has-text('Still to do this week')").count() === 1, "My week starts with what's still to do");
+  await shot(DS.page, "61-my-week");
+  await DS.page.click("a.tab:has-text('Month')");
+  await DS.page.waitForURL(/view=month/);
+  ok(await DS.page.locator(".monthgrid .cell").count() >= 28, "Month shows a calendar");
+  await DS.page.click("a:has-text('→')");
+  await DS.page.waitForURL(/m=\d{4}-\d{2}/);
+  ok(await DS.page.locator(".monthgrid").count() === 1, "Month moves to the next month");
+  await shot(DS.page, "62-month");
+  // the parent of a demo student sees the week summary and can open the week
+  const DP = await session("demoparent");
+  const [dpEmail, dpPw] = demo["Parent"].split(" / ");
+  await adultLogin(DP.page, dpEmail, dpPw);
+  ok(await DP.page.locator("text=This week:").count() >= 1, "parent sees each child's week");
+  await DP.page.locator("a:has-text('Week')").first().click();
+  await DP.page.waitForURL(/\/students\/.+\/week/);
+  ok(await DP.page.locator(".weekday").count() === 5 && await DP.page.locator(".ncard .btn").count() === 0, "parent sees the child's week without action buttons");
+  await DC.page.goto(`${BASE}/coach`);
+  await DC.page.click(".card >> nth=1"); await DC.page.waitForLoadState("networkidle");
+  ok(await DC.page.locator("th:has-text('This week')").count() === 1, "coach sees each student's week");
+}
+
 /* 9. accessibility: axe-core (WCAG 2.1 A and AA) on the main screens for each role */
 {
   const axePath = new URL("../node_modules/axe-core/axe.min.js", import.meta.url).pathname;
@@ -818,7 +852,7 @@ await shot(pp, "15-phone-dark-student");
     [S, "/student"], [S, "/student/studio"], [S, "/student/projects"], [S, studentLinkSelf ?? "/student"],
     [C, "/coach"], [P, "/school"], [P, "/school/people"], [P, "/school/privacy"], [P, "/school/settings"], [F, "/parent"], [F, "/showcase"],
     [A, "/admin/leads"], [R, "/school/billing"], [A, "/admin"],
-    [A, "/admin/email"], [A, "/admin/people"], [F, "/account"], [anon, "/forgot"], [C, `/coach/classes/${classUrl.split("/").pop()}/reports`], [F, "/parent"],
+    [A, "/admin/email"], [A, "/admin/people"], [S, "/student/week"], [S, "/student/week?view=month"], [F, "/account"], [anon, "/forgot"], [C, `/coach/classes/${classUrl.split("/").pop()}/reports`], [F, "/parent"],
   ];
   const found = new Map();
   for (const [sess, path] of pages) {

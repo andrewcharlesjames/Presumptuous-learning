@@ -1,6 +1,7 @@
 import { Info } from "@/components/Info";
 import Link from "next/link";
 import { ENT, skillsSoFar } from "@/lib/presumptuous";
+import { weekBoard } from "@/lib/week";
 import { notFound } from "next/navigation";
 import { requireSchoolUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -48,6 +49,7 @@ export default async function ClassView({ params, searchParams }: { params: Prom
   const entOf = (sid: string) => new Set(skillRows.filter(k => k.studentId === sid && k.subject === ENT && k.state === "MASTERED").map(k => k.skill));
   const bizProjects = await db.project.findMany({ where: { studentId: { in: ids }, type: "LIFE_SKILLS", schoolYear: schoolYearOf(today) }, include: { milestones: { select: { status: true } } } });
   const bizOf = new Map(bizProjects.map(p => [p.studentId, p]));
+  const boards = new Map(await Promise.all(students.map(async st => [st.id, await weekBoard(st, school)] as const)));
   const attBy = new Map(att.map(a => [a.studentId, a]));
   const going = new Set(inProgress.map(a => a.studentId));
   const returnTo = `/coach/classes/${cls.id}`;
@@ -130,10 +132,10 @@ export default async function ClassView({ params, searchParams }: { params: Prom
       </section>
 
       <section className="stack">
-        <h2>Where each student is<Info label="Where each student is">{"Each student's placement by subject (red below, yellow at, green above grade level), streak and practice. Presumptuous shows business and life skills mastered out of those taught so far this year, and their business's approved project steps. Click a name for the full plan, notes and next-level skills."}</Info></h2>
+        <h2>Where each student is<Info label="Where each student is">{"Each student's placement by subject (red below, yellow at, green above grade level), streak and practice. This week shows how much of the week's planned work is done and how much needs catching up (click it to see the week). Presumptuous shows business and life skills mastered out of those taught so far this year, and their business's approved project steps. Click a name for the full plan, notes and next-level skills."}</Info></h2>
         {students.length ? (
           <div className="tablewrap"><table>
-            <thead><tr><th>Student</th><th>Grade</th><th>Placement by subject (level 1–4)</th><th>Last assessed</th><th>Skills</th><th>Presumptuous</th><th>Practice (7 days)</th><th>Username</th><th></th></tr></thead>
+            <thead><tr><th>Student</th><th>Grade</th><th>Placement by subject (level 1–4)</th><th>Last assessed</th><th>This week</th><th>Skills</th><th>Presumptuous</th><th>Practice (7 days)</th><th>Username</th><th></th></tr></thead>
             <tbody>{students.map(s => {
               const l = latest.get(s.id);
               return (
@@ -142,6 +144,8 @@ export default async function ClassView({ params, searchParams }: { params: Prom
                   <td className="num">{gradeShort(s.grade ?? 0)}</td>
                   <td>{l ? <SubjectChips results={l.results} grade={l.grade} /> : <span className="small muted">{going.has(s.id) ? "Assessment in progress" : "Not assessed yet"}</span>}</td>
                   <td className="small muted num">{l ? fmtStamp(l.completedAt, school.timezone) : "—"}</td>
+                  <td className="small">{(() => { const b = boards.get(s.id); if (!b || !b.total) return <span className="muted">—</span>;
+                    return <><Link href={`/students/${s.id}/week`}>{b.doneCount}/{b.total} done</Link>{b.catchUp.length > 0 && <><br /><span className="pill below">{b.catchUp.length} to catch up</span></>}</>; })()}</td>
                   <td className="small">{(() => {
                     const k = skillsOf(s.id); const stuck = k.filter(x => x.state !== "MASTERED" && x.attempts >= 3);
                     return <>{k.filter(x => x.state === "MASTERED").length} mastered · {k.filter(x => x.state !== "MASTERED").length} learning{stuck.length > 0 && <><br /><span className="pill below" title={stuck.map(x => x.skill).join(", ")}>Needs help: {stuck.map(x => x.skill).slice(0, 2).join(", ")}</span></>}</>;

@@ -104,6 +104,7 @@ model User {
 
   sessions        Session[]
   resets          PasswordReset[]
+  weekPlans       WeekPlan[]
   reportCards     ReportCard[]       @relation("ReportStudent")
   coachOf         ClassCoach[]
   studentIn       ClassStudent[]
@@ -688,4 +689,16 @@ model ReportCard {
 enum ReportStatus {
   DRAFT
   FINAL
+}
+
+/// A student's learning tasks for one school week, fixed on first view so the list only shrinks as they work.
+model WeekPlan {
+  id        String   @id @default(cuid())
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  weekOf    DateTime @db.Date // the Monday
+  tasks     Json // WeekTask[]
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, weekOf])
 }
