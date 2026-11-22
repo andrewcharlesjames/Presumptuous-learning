@@ -99,7 +99,7 @@ export default async function StudentToday() {
         </div>
       )) : <p className="small muted">{scored ? "Every skill on your plan is mastered. Retake the assessment to set new goals." : "Your learning plan appears here after your assessment."}</p>}
       {habits.length > 0 && <p className="small muted">Also today: {habits.map(h => `${h.title} (${h.min} min)`).join(" · ")}</p>}
-      {scored && <Link href={`/students/${user.id}`} className="small">See my full plan</Link>}
+      {scored && <Link href="/student/progress" className="small">See my progress</Link>}
     </div>
   );
 

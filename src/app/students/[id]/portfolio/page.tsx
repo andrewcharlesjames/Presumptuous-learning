@@ -35,7 +35,7 @@ export default async function Portfolio({ params, searchParams }: { params: Prom
   return (
     <Shell user={viewer}>
       <div className="spread">
-        <div><Link href={`/students/${id}`} className="small">← {self ? "My plan" : `${student.firstName}'s plan`}</Link>
+        <div><Link href={self ? "/student/progress" : `/students/${id}`} className="small">← {self ? "My progress" : `${student.firstName}'s plan`}</Link>
           <h1>{self ? "My portfolio" : `${student.firstName}'s portfolio`}<Info label="Portfolio">{"All of the student's studio work and project evidence in one place. Starred pieces are the ones chosen as their best. Family and coaches can see it."}</Info></h1>
           <p className="muted small" style={{ marginTop: 6 }}>{total} piece{total === 1 ? "" : "s"} · starred work shows first</p></div>
         {self && <Link className="btn primary" href="/student/studio">Hand in new work</Link>}

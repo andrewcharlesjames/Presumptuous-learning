@@ -20,7 +20,7 @@ export function navFor(user: CurrentUser): { href: string; label: string }[] {
     ];
     case "COACH": return [{ href: "/coach", label: "My classes" }, { href: "/school/schedule", label: "School day" }, { href: "/showcase", label: "Showcase" }];
     case "PARENT": return [{ href: "/parent", label: "My children" }, { href: "/showcase", label: "Showcase" }];
-    case "STUDENT": return [{ href: "/student", label: "Today" }, { href: "/student/week", label: "My week" }, { href: "/student/studio", label: "Studio" }, { href: "/student/projects", label: "Projects" }, { href: `/students/${user.id}/portfolio`, label: "Portfolio" }, { href: `/students/${user.id}`, label: "My plan" }];
+    case "STUDENT": return [{ href: "/student", label: "Today" }, { href: "/student/week", label: "My week" }, { href: "/student/studio", label: "Studio" }, { href: "/student/projects", label: "Projects" }, { href: `/students/${user.id}/portfolio`, label: "Portfolio" }, { href: "/student/progress", label: "My progress" }];
   }
 }
 

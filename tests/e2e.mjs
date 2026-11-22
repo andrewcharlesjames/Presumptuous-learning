@@ -154,20 +154,22 @@ await S.page.click("button:has-text('Start the assessment')");
 await S.page.waitForURL(/\/student\/assessment/);
 let count = 0;
 // Answer by pattern: strong in the first subjects (always the correct-looking first try won't work, so pick by index).
-while (!/\/students\//.test(S.page.url()) && count < 150) {
+while (!/\/student\/progress/.test(S.page.url()) && count < 150) {
   const opts = S.page.locator(".opt");
   try { await opts.first().waitFor({ timeout: 10000 }); } catch { break; }
   if (count === 3) await shot(S.page, "08-quiz", false);
   await opts.nth(count % 5).click();
   await S.page.locator("button.primary:has-text('Next')").click();
-  await S.page.waitForFunction(n => document.querySelector(".qtext")?.getAttribute("data-n") !== n || /\/students\//.test(location.href), String(count), { timeout: 15000 }).catch(() => {});
+  await S.page.waitForFunction(n => document.querySelector(".qtext")?.getAttribute("data-n") !== n || /\/student\/progress/.test(location.href), String(count), { timeout: 15000 }).catch(() => {});
   count++;
 }
-await S.page.waitForURL(/\/students\//, { timeout: 20000 });
+await S.page.waitForURL(/\/student\/progress/, { timeout: 20000 });
 ok(count >= 7 * 6 && count <= 7 * 12, `adaptive assessment asked ${count} questions (between 6 and 12 per subject)`);
 ok(await S.page.locator("text=working at").count() > 0, "results show the level each subject is working at");
 await shot(S.page, "09-student-results");
-for (const t of ["This month", "This year"]) { await S.page.click(`button.tab:has-text('${t}')`); }
+ok(await S.page.locator("h2:has-text('My subjects')").count() === 1 && await S.page.locator(".ncard.subject").count() >= 6, "after the assessment the student sees My progress, a card per subject");
+ok(await S.page.locator("text=Assessment complete").count() === 1, "My progress confirms the assessment is complete");
+ok(await S.page.locator(".ncard.subject button, .ncard.subject a.btn").count() === 0, "My progress has no work buttons");
 await shot(S.page, "10-year-plan");
 await S.page.goto(`${BASE}/student`);
 await shot(S.page, "11-student-today-after");
@@ -242,10 +244,11 @@ for (let i = 0; i < 5; i++) {
 await S.page.waitForSelector("text=Set complete", { timeout: 15000 });
 ok(true, "practice set completes with a score");
 await S.page.goto(`${BASE}/student`);
-const meLink = await S.page.locator("a:has-text('My plan')").getAttribute("href");
+const meLink = await S.page.locator("nav a:has-text('My progress')").first().getAttribute("href");
 var studentLinkSelf = meLink;
 await S.page.goto(`${BASE}${meLink}`);
-ok(await S.page.locator("text=Practice, last 7 days").count() > 0 && await S.page.locator("text=/\\d+ sets? ·/").count() > 0, "practice shows on the student's plan page");
+ok(S.page.url().endsWith("/student/progress") && await S.page.locator("text=Next check-up").count() === 1, "My progress shows the next check-up");
+
 
 /* 5b. the school day: check in, arts, reflect */
 await S.page.goto(`${BASE}/student`);
@@ -739,12 +742,11 @@ await shot(pp, "15-phone-dark-student");
     await shot(DS.page, "56-presumptuous-today");
     void biz;
   }
-  const meHref = await DS.page.locator("a:has-text('My plan')").getAttribute("href");
-  await DS.page.goto(`${BASE}${meHref}`);
-  ok(await DS.page.locator("h2:has-text('Entrepreneurship & Life Skills')").count() === 1 && await DS.page.locator(".ent-year .card").count() === 10, "plan shows the year's ten business and life skills units");
-  ok(await DS.page.locator(".ent-year .chip.above").count() >= 1, "mastered business skills are ticked");
-  await shot(DS.page, "57-presumptuous-plan");
-  const learn = DS.page.locator(".ent-year a.chip").first();
+  await DS.page.goto(`${BASE}/student/progress`);
+  ok(await DS.page.locator(".ncard.ent:has-text('business and life skills this year')").count() === 1, "My progress shows business and life skills for the year");
+  await shot(DS.page, "57-my-progress");
+  await DS.page.goto(`${BASE}/student`);
+  const learn = DS.page.locator("a[href*='subject=ent']").first();
   if (await learn.count()) {
     await learn.click();
     await DS.page.waitForURL(/\/student\/learn\?subject=ent/);

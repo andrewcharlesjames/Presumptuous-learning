@@ -33,7 +33,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   const report = await db.reportCard.findUnique({ where: { studentId_schoolYear_term: { studentId: id, schoolYear, term } } });
   const visible = report && (staff || report.status === "FINAL");
   await auditView(viewer, id, "student.view");
-  const back = viewer.role === "PARENT" ? "/parent" : viewer.role === "STUDENT" ? `/students/${id}` : `/students/${id}`;
+  const back = viewer.role === "PARENT" ? "/parent" : viewer.role === "STUDENT" ? "/student/progress" : `/students/${id}`;
   const coaches = [...new Set(student.studentIn.flatMap(c => c.class.coaches.map(k => `${k.coach.firstName} ${k.coach.lastName}`)))];
   const flash = await readFlash();
   const head = (<>

@@ -5,7 +5,7 @@ import { auditView } from "@/lib/audit";
 import { consentFor } from "@/lib/consent";
 import { ConsentControls } from "@/components/ConsentControls";
 import { deleteStudentPermanently } from "@/app/privacy-actions/actions";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { canManageStudent, canViewStudent } from "@/lib/access";
 import { db } from "@/lib/db";
@@ -41,6 +41,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
   if (!student || !student.school) notFound();
   const school = student.school;
   const self = viewer.id === student.id;
+  if (self) redirect(`/student/progress${done ? "?done=1" : ""}`); // students have their own, simpler page
   const staff = await canManageStudent(viewer, id);
   await auditView(viewer, id, "student.view");
   const today = todayIn(school.timezone);
@@ -133,7 +134,7 @@ export default async function StudentProfile({ params, searchParams }: { params:
           <section className="stack">
             <h2>Placement and next-level requirements<Info label="Placement">{"From the latest assessment. Below, at or above grade level, with the Ontario achievement level (1 to 4) and the grade the student actually works at. The right-hand column lists the skills to master to move up a level. Mastered means a lesson's mastery check was passed; Needs help means 3 checks were missed."}</Info></h2>
             <div className="tablewrap"><table>
-              <thead><tr><th>Subject</th><th>Placement</th><th>Level</th><th>To reach the next level, {who.toLowerCase() === "you" ? "show you can" : `${student.firstName} needs to show`}…</th></tr></thead>
+              <thead><tr><th>Subject</th><th>Placement</th><th>Level</th><th>Skills to level up<Info label="Skills to level up">{`The skills between ${student.firstName} and the next level in this subject. ${student.firstName}'s daily lessons already work through them in order, so this isn't extra work: it's the checklist that shows progress. Mastered means passed the lesson's 5-question check; Needs help means 3 checks were missed.${staff ? " Assign puts one on their list straight away." : ""}`}</Info></th></tr></thead>
               <tbody>{scored.results.map(r => {
                 const req = nextLevelSkills(r, scored.assessment.grade, scored.skillsAt);
                 const target = `Show ${gradeName(nextTarget(r))} work`;
@@ -179,11 +180,51 @@ export default async function StudentProfile({ params, searchParams }: { params:
             </table></div>
           </section>
 
-          {planData && <PlanView plan={planData} />}
         </>
       )}
 
-      <EntYear grade={grade} mastered={new Set(skills.filter(k => k.state === "MASTERED").map(k => `${k.subject}|${k.skill}`))} today={today} self={self} projectTitle={bizProject?.title} />
+      {history.length > 1 && (
+        <section className="card">
+          <h2>Progress over time<Info label="Progress over time">{"Each assessment taken, so you can see subjects move from below to at to above grade level. Students retake it when their coach assigns it or at the end of a month's plan."}</Info></h2>
+          <p className="small muted">The grade level each subject was working at, assessment by assessment.</p>
+          <div className="tablewrap" style={{ border: 0 }}><table>
+            <thead><tr><th>Subject</th>{[...history].reverse().map(h => <th key={h.id} className="num">{fmtStamp(h.completedAt!, school.timezone, { month: "short", day: "numeric" })}</th>)}<th>Change</th></tr></thead>
+            <tbody>{[...new Set(history.flatMap(h => ((h.results ?? []) as StoredResult[]).map(r => r.sid)))].map(sid => {
+              const series = [...history].reverse().map(h => ((h.results ?? []) as StoredResult[]).find(r => r.sid === sid));
+              const lvl = (r?: StoredResult) => r ? (r.working ?? h0(r)) : null;
+              const first = lvl(series.find(Boolean)), last = lvl([...series].reverse().find(Boolean));
+              const delta = first !== null && last !== null ? last - first : 0;
+              return (
+                <tr key={sid}>
+                  <td className="small"><b>{isSubjectId(sid) ? SUBJECT_BY_ID[sid].name(grade) : sid}</b></td>
+                  {series.map((r, i) => <td key={i} className="num small">{r ? <span className={`chip ${r.status}`}>{lvl(r)! < 0 ? "Pre-K" : lvl(r) === 0 ? "K" : `Gr ${lvl(r)}`}</span> : "—"}</td>)}
+                  <td className="small">{delta > 0 ? <span className="pill above">+{delta} grade{delta > 1 ? "s" : ""}</span> : delta < 0 ? <span className="pill below">{delta}</span> : <span className="muted">No change</span>}</td>
+                </tr>
+              );
+            })}</tbody>
+          </table></div>
+          <p className="small">Skills mastered per week (last 6 weeks): {weeklyMastered.map((n, i) => <span key={i} className="chip" style={{ marginRight: 4 }}>{n}</span>)}</p>
+        </section>
+      )}
+
+      <section className="card">
+        <div className="spread"><h2>Skills<Info label="Skills">{"Skills the student has started learning through lessons. Mastered: passed the 5-question check (4 or more right). In progress: still learning. Mastered skills come off the plan and the next ones move up."}</Info></h2><span className="small muted num">{skills.filter(k => k.state === "MASTERED").length} mastered · {skills.filter(k => k.state !== "MASTERED").length} in progress</span></div>
+        {skills.length ? (
+          <div className="tablewrap" style={{ border: 0 }}><table>
+            <thead><tr><th>Skill</th><th>Subject</th><th>Status</th><th>Checks</th><th>Last check</th></tr></thead>
+            <tbody>{skills.slice(0, 20).map(k => (
+              <tr key={k.id}>
+                <td>{self && k.state !== "MASTERED" ? <Link href={learnHref(k.subject, k.grade, k.skill)}>{k.skill}</Link> : k.skill}<br /><span className="small muted">{gradeName(k.grade)}</span></td>
+                <td className="small">{isSubjectId(k.subject) ? SUBJECT_BY_ID[k.subject].name(grade) : k.subject}</td>
+                <td>{k.state === "MASTERED" ? <span className="pill above">Mastered</span> : k.attempts >= 3 ? <span className="pill below">Needs help</span> : <span className="pill at">Learning</span>}</td>
+                <td className="num small">{k.attempts}</td>
+                <td className="num small">{k.lastTotal ? `${k.lastScore}/${k.lastTotal}` : "—"}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        ) : <p className="muted small">{self ? "Use the Learn it buttons on your Today screen. Each skill has a short lesson, then a 5-question check." : "No lessons started yet."}</p>}
+      </section>
+
 
       {(assignments.length > 0 || staff) && (
         <section className="card">
@@ -231,29 +272,8 @@ export default async function StudentProfile({ params, searchParams }: { params:
         </section>
       )}
 
-      {history.length > 1 && (
-        <section className="card">
-          <h2>Progress over time<Info label="Progress over time">{"Each assessment taken, so you can see subjects move from below to at to above grade level. Students retake it when their coach assigns it or at the end of a month's plan."}</Info></h2>
-          <p className="small muted">The grade level each subject was working at, assessment by assessment.</p>
-          <div className="tablewrap" style={{ border: 0 }}><table>
-            <thead><tr><th>Subject</th>{[...history].reverse().map(h => <th key={h.id} className="num">{fmtStamp(h.completedAt!, school.timezone, { month: "short", day: "numeric" })}</th>)}<th>Change</th></tr></thead>
-            <tbody>{[...new Set(history.flatMap(h => ((h.results ?? []) as StoredResult[]).map(r => r.sid)))].map(sid => {
-              const series = [...history].reverse().map(h => ((h.results ?? []) as StoredResult[]).find(r => r.sid === sid));
-              const lvl = (r?: StoredResult) => r ? (r.working ?? h0(r)) : null;
-              const first = lvl(series.find(Boolean)), last = lvl([...series].reverse().find(Boolean));
-              const delta = first !== null && last !== null ? last - first : 0;
-              return (
-                <tr key={sid}>
-                  <td className="small"><b>{isSubjectId(sid) ? SUBJECT_BY_ID[sid].name(grade) : sid}</b></td>
-                  {series.map((r, i) => <td key={i} className="num small">{r ? <span className={`chip ${r.status}`}>{lvl(r)! < 0 ? "Pre-K" : lvl(r) === 0 ? "K" : `Gr ${lvl(r)}`}</span> : "—"}</td>)}
-                  <td className="small">{delta > 0 ? <span className="pill above">+{delta} grade{delta > 1 ? "s" : ""}</span> : delta < 0 ? <span className="pill below">{delta}</span> : <span className="muted">No change</span>}</td>
-                </tr>
-              );
-            })}</tbody>
-          </table></div>
-          <p className="small">Skills mastered per week (last 6 weeks): {weeklyMastered.map((n, i) => <span key={i} className="chip" style={{ marginRight: 4 }}>{n}</span>)}</p>
-        </section>
-      )}
+
+
 
       <section className="card">
         <div className="spread"><h2>This week<Info label="This week and streaks">{"A school day counts as complete with a check-in, at least one lesson or practice set, and a reflection. The streak is complete school days in a row; weekends, holidays and PA days don't break it."}</Info></h2><span className="small"><b>{st.current}</b>-day streak · best {st.best}</span></div>
@@ -274,23 +294,9 @@ export default async function StudentProfile({ params, searchParams }: { params:
         )}
       </section>
 
-      <section className="card">
-        <div className="spread"><h2>Skills<Info label="Skills">{"Skills the student has started learning through lessons. Mastered: passed the 5-question check (4 or more right). In progress: still learning. Mastered skills come off the plan and the next ones move up."}</Info></h2><span className="small muted num">{skills.filter(k => k.state === "MASTERED").length} mastered · {skills.filter(k => k.state !== "MASTERED").length} in progress</span></div>
-        {skills.length ? (
-          <div className="tablewrap" style={{ border: 0 }}><table>
-            <thead><tr><th>Skill</th><th>Subject</th><th>Status</th><th>Checks</th><th>Last check</th></tr></thead>
-            <tbody>{skills.slice(0, 20).map(k => (
-              <tr key={k.id}>
-                <td>{self && k.state !== "MASTERED" ? <Link href={learnHref(k.subject, k.grade, k.skill)}>{k.skill}</Link> : k.skill}<br /><span className="small muted">{gradeName(k.grade)}</span></td>
-                <td className="small">{isSubjectId(k.subject) ? SUBJECT_BY_ID[k.subject].name(grade) : k.subject}</td>
-                <td>{k.state === "MASTERED" ? <span className="pill above">Mastered</span> : k.attempts >= 3 ? <span className="pill below">Needs help</span> : <span className="pill at">Learning</span>}</td>
-                <td className="num small">{k.attempts}</td>
-                <td className="num small">{k.lastTotal ? `${k.lastScore}/${k.lastTotal}` : "—"}</td>
-              </tr>
-            ))}</tbody>
-          </table></div>
-        ) : <p className="muted small">{self ? "Use the Learn it buttons on your Today screen. Each skill has a short lesson, then a 5-question check." : "No lessons started yet."}</p>}
-      </section>
+      {planData && <PlanView plan={planData} />}
+
+      <EntYear grade={grade} mastered={new Set(skills.filter(k => k.state === "MASTERED").map(k => `${k.subject}|${k.skill}`))} today={today} self={self} projectTitle={bizProject?.title} />
 
       <section className="card">
         <h2>Practice, last 7 days<Info label="Practice">{"Practice sets are 5 questions with the answer shown right away. They build confidence and don't change the placement."}</Info></h2>

@@ -282,3 +282,8 @@ a.tab { text-decoration: none; display: inline-block; }
 .studentview-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border-radius: 12px; background: var(--ink); color: var(--paper); }
 .studentview-bar .btn { background: var(--paper); color: var(--ink); }
 .studentview-bar .info-btn { border-color: var(--accent); color: var(--accent); }
+.skills-list ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; font-size: .88rem; }
+.ncard.subject::before { background: var(--accent); }
+.news.wide { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.ncard .ruler { min-width: 0; max-width: 100%; }
+.ncard-top { flex-wrap: wrap; }

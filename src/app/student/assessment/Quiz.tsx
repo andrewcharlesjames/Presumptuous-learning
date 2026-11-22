@@ -19,7 +19,7 @@ export function Quiz({ id, studentId, initial, readAloud }: { id: string; studen
     startTransition(async () => {
       const r = await submitAnswer(id, view.index, picked);
       if (!r.ok) { setError("That answer didn't save. Refresh the page to continue where you left off."); return; }
-      if (r.done) { router.push(`/students/${studentId}?done=1`); return; }
+      if (r.done) { router.push("/student/progress?done=1"); return; }
       if (r.next) { setView(r.next); setPicked(null); window.scrollTo(0, 0); }
     });
   }, [id, picked, pending, router, studentId, view.index]);
