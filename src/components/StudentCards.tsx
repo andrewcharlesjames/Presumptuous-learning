@@ -80,7 +80,7 @@ export function StudentCards({ board, schoolDay, reason, checkedIn, reflected, h
         </section>
       )}
 
-      <p><Link className="btn" href={weekHref}>See my whole week →</Link> <span className="small muted">{board.doneCount} of {board.total} done this week</span></p>
+      <p><Link className="btn" href={weekHref}>See my whole week →</Link> {board.total > 0 && <span className="small muted">{board.doneCount} of {board.total} done this week</span>}</p>
     </>
   );
 }
